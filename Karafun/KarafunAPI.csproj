@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Authors>Tom Hollis</Authors>
+    <RepositoryUrl>https://www.github.com/tomrhollis/karayote</RepositoryUrl>
+    <NeutralLanguage>en</NeutralLanguage>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <AssemblyVersion>0.1.*.*</AssemblyVersion>
+    <FileVersion>0.1.*.*</FileVersion>
+  </PropertyGroup>
+
+</Project>
