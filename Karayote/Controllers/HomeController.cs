@@ -1,4 +1,5 @@
-﻿using Karayote.Models;
+﻿using KarafunAPI;
+using Karayote.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -7,10 +8,12 @@ namespace Karayote.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly IKarafun _karafun;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, IKarafun karafun)
         {
             _logger = logger;
+            _karafun = karafun;
         }
 
         public IActionResult Index()

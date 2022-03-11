@@ -1,23 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TypeScriptTarget>ES2020</TypeScriptTarget>
-  </PropertyGroup>
-
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <TypeScriptTarget>ES2020</TypeScriptTarget>
-  </PropertyGroup>
-
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <Nullable>annotations</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-Karayote-0899CB1C-A631-4986-B6ED-767332701102</UserSecretsId>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <RepositoryUrl>https://www.github.com/tomrhollis/karayote</RepositoryUrl>
-    <AssemblyVersion>0.1.*.*</AssemblyVersion>
-    <FileVersion>0.1.*.*</FileVersion>
-    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <UserSecretsId>aspnet-Karayote-49F5E408-A400-4CC2-8638-901E46A992F3</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,11 +12,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Karafun\KarafunAPI.csproj" />
   </ItemGroup>
 
 </Project>
