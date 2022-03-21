@@ -24,9 +24,30 @@ namespace KarafunAPI.Models
         [Range(0, float.MaxValue)]
         public float Duration { get; internal set; }
 
-        internal static List<Item> ParseList(XmlElement e)
+        public Item(XmlNode n)
         {
-            throw new NotImplementedException();
+            Id = uint.Parse(n.Attributes["id"].Value); 
+            foreach(XmlNode child in n.ChildNodes)
+            {
+                switch (child.Name)
+                {
+                    case "title": Title = child.InnerText; break;
+                    case "artist": Artist = child.InnerText; break;
+                    case "year": Year = short.Parse(child.InnerText); break;
+                    case "duration": Duration = float.Parse(child.InnerText); break;
+                    default: break;
+                }
+            }
+        }
+
+        internal static List<Item> ParseList(XmlDocument e)
+        {
+            List<Item> list = new List<Item>();
+            foreach (XmlNode node in e.GetElementsByTagName("item"))
+            {
+                list.Add(new Item(node));
+            }
+            return (list.Count > 0) ? list : null;
         }
     }
 }

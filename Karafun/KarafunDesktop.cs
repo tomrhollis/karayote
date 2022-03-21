@@ -74,13 +74,13 @@ namespace KarafunAPI
             string message = $"<action type=\"getStatus\"{(noqueue ? " noqueue" : "")}></action>";
             return new Status(await Request(message));
         }
-        /*
+        
         public async Task<List<Catalog>> GetCatalogList()
         {
             string message = "<action type=\"getCatalogList\"></action>";
             return Catalog.ParseList(await Request(message));
         }
-
+        
         public async Task<List<Item>> GetList(uint listId, uint limit = 100, uint offset = 0)
         {
             string message = $"<action type=\"getList\" id=\"{listId}\" offset=\"{ offset}\" limit=\"{limit}\"></action>";
@@ -92,7 +92,7 @@ namespace KarafunAPI
             string message = $"<action type=\"search\" offset=\"{ offset}\" limit=\"{limit}\">{searchString}</action>";
             return Item.ParseList(await Request(message));
         }
-        */
+        
         public async Task<Status> Play()
         {
             string message = "<action type=\"play\"></action>";
