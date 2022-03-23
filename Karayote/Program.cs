@@ -1,5 +1,6 @@
 using KarafunAPI;
 using Karayote.Data;
+using Karayote.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,8 +12,20 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.AddIdentity<User, IdentityRole>(options =>
+    {
+        options.Password.RequiredLength = 6;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequireDigit = false;
+        options.User.RequireUniqueEmail = true;
+    }).AddEntityFrameworkStores<ApplicationDbContext>()
+      .AddDefaultTokenProviders();
+
+builder.Services.AddRouting(options =>
+{
+    options.LowercaseUrls = true;
+    options.AppendTrailingSlash = true;
+});
 builder.Services.AddControllersWithViews();
 builder.Services.AddLogging();
 builder.Services.AddSingleton<IKarafun, KarafunDesktop>();
