@@ -20,6 +20,7 @@ namespace KarafunAPI
         Task<List<Item>> Search(string searchString, uint limit = 10, uint offset = 0);
         Task<Status> Seek(uint time);
         void Stop();
+        void Start(string s = null);
         Task<Status> Tempo(sbyte tempo);
     }
 }
