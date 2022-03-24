@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Karayote.Areas.Admin.Controllers
 {
     [Authorize(Roles="Admin")]
-    public class HomeController : Controller
+    [Area("Admin")]
+    public class AdminController : Controller
     {
         public IActionResult Index()
         {

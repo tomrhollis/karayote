@@ -12,14 +12,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddIdentity<User, IdentityRole>(options =>
+builder.Services.AddDefaultIdentity<IdentityUser>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.Configure<IdentityOptions>(options =>
     {
         options.Password.RequiredLength = 6;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireDigit = false;
         options.User.RequireUniqueEmail = true;
-    }).AddEntityFrameworkStores<ApplicationDbContext>()
-      .AddDefaultTokenProviders();
+    });
 
 builder.Services.AddRouting(options =>
 {
@@ -53,11 +54,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
+    name: "Admin",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapControllerRoute(
-      name: "Admin",
-      pattern: "Admin/{controller=Home}/{action=Index}/{id?}");
 
 //app.MapRazorPages();
 
