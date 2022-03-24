@@ -16,7 +16,7 @@ namespace KarafunAPI
 
         private bool stopping = false;
         private ClientWebSocket karafun = new();
-        private Uri wsLocation = new Uri("ws://localhost:57570");
+        private Uri wsLocation = new Uri("ws://localhost:57570"); // default server address on same device
 
 
         public KarafunDesktop()
@@ -29,7 +29,7 @@ namespace KarafunAPI
         /// <param name="location">Address of the websocket server (must begin with ws://)</param>
         public void Start(string location=null)
         {
-            if (!String.IsNullOrEmpty(location)) wsLocation = new Uri(location);
+            if (!String.IsNullOrEmpty(location)) wsLocation = new Uri(location); // set Uri if applicable
             Debug.WriteLine("Starting websocket listener for address " + wsLocation);
             Task.Run(Listen);
         }
@@ -47,14 +47,19 @@ namespace KarafunAPI
         /// </summary>
         private async Task Listen()
         {
+            // keep asking for updated status every second
             while (!stopping)
             {
-                if (!InUse) Status = await GetStatus();
+                if (!InUse) // but only if there isn't already a request running
+                { 
+                    Status =await GetStatus();
 #if DEBUG
-                Debug.WriteLine(Status.ToString());
+                    Debug.WriteLine(Status.ToString());
 #endif
+                }
                 Thread.Sleep(1000);
             }
+            // close the connection when done
             await karafun.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
         }
 
@@ -65,6 +70,7 @@ namespace KarafunAPI
         /// <returns>The XML response of the server as an XmlDocument object</returns>
         private async Task<XmlDocument> Request(string request)
         {
+            // wait until the coast is clear
             while (InUse) Thread.Sleep(100);
             InUse = true;
 
@@ -123,10 +129,10 @@ namespace KarafunAPI
         /// <param name="limit">The maximum number of songs to return</param>
         /// <param name="offset">The number of songs to skip</param>
         /// <returns>A list of song items</returns>
-        public async Task<List<Item>> GetList(uint listId, uint limit = 100, uint offset = 0)
+        public async Task<List<Song>> GetList(uint listId, uint limit = 100, uint offset = 0)
         {
             string message = $"<action type=\"getList\" id=\"{listId}\" offset=\"{ offset}\" limit=\"{limit}\"></action>";
-            return Item.ParseList(await Request(message));
+            return Song.ParseList(await Request(message));
         }
 
         /// <summary>
@@ -136,10 +142,10 @@ namespace KarafunAPI
         /// <param name="limit">The maximum number of songs to return</param>
         /// <param name="offset">The number of results to skip</param>
         /// <returns>A list of song items</returns>
-        public async Task<List<Item>> Search(string searchString, uint limit = 10, uint offset = 0)
+        public async Task<List<Song>> Search(string searchString, uint limit = 10, uint offset = 0)
         {
             string message = $"<action type=\"search\" offset=\"{ offset}\" limit=\"{limit}\">{searchString}</action>";
-            return Item.ParseList(await Request(message));
+            return Song.ParseList(await Request(message));
         }
         
         /// <summary>
@@ -269,6 +275,5 @@ namespace KarafunAPI
             string message = $"<action type=\"changeQueuePosition\" id=\"{oldPosition}\">{newPosition}</action>";
             return new Status(await Request(message));
         }
-
     }
 }

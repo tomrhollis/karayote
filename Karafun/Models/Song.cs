@@ -12,7 +12,7 @@ namespace KarafunAPI.Models
     /// A song item returned by a catalog listing or search. 
     /// Contains database ID, does not contain singer name, queue position or status
     /// </summary>
-    public class Item
+    public class Song
     {
         public uint Id { get; internal set; }
         public string Title { get; internal set; }
@@ -24,7 +24,7 @@ namespace KarafunAPI.Models
         [Range(0, float.MaxValue)]
         public float Duration { get; internal set; }
 
-        public Item(XmlNode n)
+        public Song(XmlNode n)
         {
             Id = uint.Parse(n.Attributes["id"].Value); 
             foreach(XmlNode child in n.ChildNodes)
@@ -40,12 +40,12 @@ namespace KarafunAPI.Models
             }
         }
 
-        internal static List<Item> ParseList(XmlDocument e)
+        internal static List<Song> ParseList(XmlDocument e)
         {
-            List<Item> list = new List<Item>();
+            List<Song> list = new List<Song>();
             foreach (XmlNode node in e.GetElementsByTagName("item"))
             {
-                list.Add(new Item(node));
+                list.Add(new Song(node));
             }
             return (list.Count > 0) ? list : null;
         }
