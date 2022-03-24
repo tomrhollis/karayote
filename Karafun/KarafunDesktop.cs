@@ -57,7 +57,7 @@ namespace KarafunAPI
                     Debug.WriteLine(Status.ToString());
 #endif
                 }
-                Thread.Sleep(1000);
+                Thread.Sleep(2000);
             }
             // close the connection when done
             await karafun.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);

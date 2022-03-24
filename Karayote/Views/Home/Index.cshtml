@@ -1,21 +1,11 @@
-﻿@{
+﻿@model KarafunAPI.Models.Status
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
     <h1 class="display-4">Status</h1>
-<!--    <div class="row">
-        //if(Model.SongQueue.Count > 0)
-        {
-            <div class="col-3">
-                //Model.SongQueue.First().Title;
-            </div>    
-        }
-        <div class="col-3">
-            //Model.PlayerState
-        </div>
-        <div class="col-3">
-            //Model.Position
-        </div>
-    </div>-->
+    <div class="col-6">
+        Data dump: @Model?.ToString()
+    </div>
 </div>
