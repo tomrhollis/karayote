@@ -3,9 +3,28 @@
     ViewData["Title"] = "Admin Page";
 }
 
+
 <div class="text-center">
     <h1 class="display-4">Status</h1>
     <div class="col-6">
-        Data dump: @Model?.ToString()
+        Data dump: <span id="data-container">@Model?.ToString()</span>
     </div>
 </div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        setInterval(() => {
+            $.ajax({
+                type: 'GET',
+                url: '@Url.Action("StatusUpdate")',
+                success: (result) => {
+                    $("#data-container").html(JSON.stringify(result));
+                },
+                error: (result) => {
+                    $("#data-container").html("Error: " + JSON.stringify(result));
+                }
+            });
+        }, 2000);
+    </script>
+}

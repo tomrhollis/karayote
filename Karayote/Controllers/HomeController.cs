@@ -2,6 +2,7 @@
 using Karayote.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Karayote.Controllers
 {
@@ -30,6 +31,12 @@ namespace Karayote.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        [HttpGet]
+        public JsonResult StatusUpdate()
+        {
+            return new JsonResult(_karafun.Status);
         }
     }
 }
