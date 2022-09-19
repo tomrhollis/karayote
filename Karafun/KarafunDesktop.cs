@@ -12,17 +12,20 @@ namespace KarafunAPI
     public class KarafunDesktop : IKarafun
     {
         public Status Status { get; private set; }
-        internal bool InUse { get; private set; } = false;
+        public bool InUse { get; private set; } = false;
 
-        private bool stopping = false;
+        //private readonly UInt16 STATUS_REFRESH_TIME = 2000; // ms to wait between Karafun API requests
+        //private readonly UInt16 STATUS_REFRESH_SLEEP_TIME = 1; // ms to wait between trying to refresh status again when it's time
+        private readonly UInt16 REQUEST_SLEEP_TIME = 2; // ms to wait before trying to put a request through again
+        //private bool stopping = false;
         private ClientWebSocket karafun = new();
         private Uri wsLocation = new Uri("ws://localhost:57570"); // default server address on same device
 
-
-        public KarafunDesktop()
+        public KarafunDesktop(string location = null)
         {
+            if (!String.IsNullOrEmpty(location)) wsLocation = new Uri(location); // set Uri if applicable
         }
-
+        /*
         /// <summary>
         /// Sets the server location if necessary and starts the listener process
         /// </summary>
@@ -47,21 +50,19 @@ namespace KarafunAPI
         /// </summary>
         private async Task Listen()
         {
-            // keep asking for updated status every second
+            // keep asking for updated status every 2 seconds
             while (!stopping)
             {
-                if (!InUse) // but only if there isn't already a request running
-                { 
-                    Status =await GetStatus();
+                while (InUse) Thread.Sleep(STATUS_REFRESH_SLEEP_TIME);
+                Status =await GetStatus();
 #if DEBUG
-                    Debug.WriteLine(Status.ToString());
-#endif
-                }
-                Thread.Sleep(2000);
+                Debug.WriteLine(Status.ToString());
+#endif        
+                Thread.Sleep(STATUS_REFRESH_TIME);
             }
             // close the connection when done
             await karafun.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-        }
+        }*/
 
         /// <summary>
         /// Make a request of the websocket server
@@ -71,7 +72,7 @@ namespace KarafunAPI
         private async Task<XmlDocument> Request(string request)
         {
             // wait until the coast is clear
-            while (InUse) Thread.Sleep(100);
+            if (InUse) throw new Exception("API is already in use. Karafun Desktop responds too slowly to use without setting up a queue to access this. Please do so.");
             InUse = true;
 
             if (!(karafun.State == WebSocketState.Open))
