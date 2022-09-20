@@ -4,7 +4,8 @@
     {
         public DateTime RequestTime { get; }
 
-        public User Singer { get; }
+        public string UserId { get; set; }
+        public User User { get; }
 
         public string? ExtraName { get; set; }
         public ISong Song { get ; }
@@ -12,7 +13,7 @@
         public KarafunRequest(User u, KarafunSong s)
         {
             RequestTime = DateTime.Now;
-            Singer = u;
+            User = u;
             Song = s;
         }
 
@@ -20,7 +21,7 @@
         public KarafunRequest(ISongRequest r, KarafunSong ns, string nxn = null)
         {
             RequestTime = r.RequestTime;
-            Singer = r.Singer;
+            User = r.User;
             ExtraName = nxn ?? r.ExtraName;
             Song = ns;
         }

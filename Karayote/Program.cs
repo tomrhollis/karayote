@@ -11,7 +11,7 @@ using System.Collections.Concurrent;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+/*var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -24,7 +24,7 @@ builder.Services.Configure<IdentityOptions>(options =>
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireDigit = false;
         options.User.RequireUniqueEmail = true;
-    });
+    });*/
 
 builder.Services.AddRouting(options =>
 {
@@ -34,6 +34,7 @@ builder.Services.AddRouting(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddLogging();
 builder.Services.AddSingleton<IKarafun, KarafunDesktop>();
+builder.Services.AddSingleton<ISongQueue, SongQueue>();
 
 // queued services from MS docs
 builder.Services.AddSingleton<MonitorLoop>();

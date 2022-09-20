@@ -1,4 +1,5 @@
-﻿using Karayote.Models;
+﻿/* This needs to be redone with the new class structure
+using Karayote.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,4 +31,4 @@ namespace Karayote.Data
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }
-}
+} */

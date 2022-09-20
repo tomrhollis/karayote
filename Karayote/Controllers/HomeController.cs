@@ -1,25 +1,23 @@
-﻿using KarafunAPI;
-using Karayote.Models;
+﻿using Karayote.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
-using System.Text.Json;
 
 namespace Karayote.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly IKarafun _karafun;
+        private readonly ISongQueue _queue;
 
-        public HomeController(ILogger<HomeController> logger, IKarafun karafun)
+        public HomeController(ILogger<HomeController> logger, ISongQueue q)
         {
             _logger = logger;
-            _karafun = karafun;
+            _queue = q;
         }
 
         public IActionResult Index()
         {
-            return View(new HomeViewModel(_karafun.Status));
+            return View(new HomeViewModel(_queue.Status));
         }
 
         public IActionResult Privacy()

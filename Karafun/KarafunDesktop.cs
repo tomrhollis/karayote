@@ -1,6 +1,6 @@
 ﻿using KarafunAPI.Models;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using System.Net.WebSockets;
 using System.Text;
 using System.Xml;
@@ -22,8 +22,9 @@ namespace KarafunAPI
         private ClientWebSocket karafun = new();
         private Uri wsLocation = new Uri("ws://localhost:57570"); // default server address on same device
 
-        public KarafunDesktop(IConfiguration cfg)
+        public KarafunDesktop(ILogger<KarafunDesktop> logger, IConfiguration cfg)
         {
+            
             string location = cfg.GetSection("KarafunAddress").Value;
             if (!String.IsNullOrEmpty(location)) wsLocation = new Uri(location); // set Uri if applicable
         }
