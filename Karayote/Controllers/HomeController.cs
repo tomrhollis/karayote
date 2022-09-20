@@ -19,7 +19,7 @@ namespace Karayote.Controllers
 
         public IActionResult Index()
         {
-            return View(_karafun.Status);
+            return View(new HomeViewModel(_karafun.Status));
         }
 
         public IActionResult Privacy()

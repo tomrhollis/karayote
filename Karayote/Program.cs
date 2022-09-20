@@ -4,6 +4,7 @@ using Karayote.Models;
 using Karayote.QueueService;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
 
@@ -78,8 +79,6 @@ app.MapControllerRoute(
 
 //app.MapRazorPages();
 
-string serverLocation = app.Configuration.GetValue<string>("KarafunAddress");
-app.Services.GetService<IKarafun>().Start(serverLocation);
 MonitorLoop monitorLoop = app.Services.GetRequiredService<MonitorLoop>()!;
 monitorLoop.StartMonitorLoop();
 
