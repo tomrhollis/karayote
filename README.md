@@ -1,4 +1,4 @@
 # karayote
-Web-based karaoke management for hosts and self-serve queueing for guests
+Karaoke queue manager using messenger bots
 
 Just getting started, active development
