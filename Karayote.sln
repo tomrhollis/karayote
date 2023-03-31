@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.0.32112.339
+VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KarayoteTests", "KarayoteTests\KarayoteTests.csproj", "{48BD36B1-EBF4-47B1-8449-7494DB50F833}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Karayote", "Karayote\Karayote.csproj", "{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KarafunAPI", "Karafun\KarafunAPI.csproj", "{B0934AAF-C5FF-4861-8B72-AE4A0007C286}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KarafunAPI", "Karafun\KarafunAPI.csproj", "{5A03167E-24CB-4D6A-AD2A-5024A9A630F4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Karayote", "Karayote\Karayote.csproj", "{1A2DCE10-212B-4EB3-A563-D880FBC540E6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Botifex", "..\Botifex\Botifex.csproj", "{804EEADE-814B-493F-A831-D770FA4F6BD6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,23 +15,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{48BD36B1-EBF4-47B1-8449-7494DB50F833}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{48BD36B1-EBF4-47B1-8449-7494DB50F833}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{48BD36B1-EBF4-47B1-8449-7494DB50F833}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{48BD36B1-EBF4-47B1-8449-7494DB50F833}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B0934AAF-C5FF-4861-8B72-AE4A0007C286}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B0934AAF-C5FF-4861-8B72-AE4A0007C286}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B0934AAF-C5FF-4861-8B72-AE4A0007C286}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B0934AAF-C5FF-4861-8B72-AE4A0007C286}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1A2DCE10-212B-4EB3-A563-D880FBC540E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1A2DCE10-212B-4EB3-A563-D880FBC540E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1A2DCE10-212B-4EB3-A563-D880FBC540E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1A2DCE10-212B-4EB3-A563-D880FBC540E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {EB1390D5-98FF-4E82-B381-B195D70B4D79}
+		SolutionGuid = {2F580E5E-C99E-4817-A484-1F2E2CBF89DD}
 	EndGlobalSection
 EndGlobal
