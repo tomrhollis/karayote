@@ -2,6 +2,7 @@
 
 
 using Botifex;
+using KarafunAPI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,6 +23,7 @@ await Host.CreateDefaultBuilder(args)
     .ConfigureServices((ctx, services) =>
     {
         services.AddMyClasses()
+                .AddSingleton<IKarafun, KarafunDesktop>()
                 .AddHostedService<Karayote>();
 
              // .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")));

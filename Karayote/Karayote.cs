@@ -1,4 +1,5 @@
 ﻿using Botifex;
+using KarafunAPI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -9,26 +10,28 @@ internal class Karayote : IHostedService
     private IConfiguration cfg;
     private IHostApplicationLifetime appLifetime;
     private IBotifex botifex;
+    private IKarafun karafun;
 
-    public Karayote(ILogger<Karayote> log, IConfiguration cfg, IHostApplicationLifetime appLifetime, /*IKarafun karApi,*/ Botifex.IBotifex botifex)
+    public Karayote(ILogger<Karayote> log, IConfiguration cfg, IHostApplicationLifetime appLifetime, IKarafun karApi, Botifex.IBotifex botifex)
     {
         this.log = log;
         this.cfg = cfg;
         this.appLifetime = appLifetime;
         this.botifex = botifex;
+        karafun = karApi;
 
         appLifetime.ApplicationStarted.Register(OnStarted);
         appLifetime.ApplicationStopping.Register(OnStopping);
         appLifetime.ApplicationStopped.Register(OnStopped);
 
         botifex.RegisterTextHandler(ProcessText);
-        botifex.RegisterCommandHandler(ProcessCommand);
-        
+        botifex.RegisterCommandHandler(ProcessCommand);        
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         log.LogInformation("StartAsync has been called.");
+        karafun.OnStatusUpdated += HandleStatusUpdate;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -61,6 +64,11 @@ internal class Karayote : IHostedService
     private async void ProcessText(object? sender, MessageReceivedEventArgs e)
     {
         log.LogDebug($"Tester got {e.Message} from {sender.GetType()}");
+    }
+
+    private async void HandleStatusUpdate(object? sender, StatusUpdateEventArgs e)
+    {
+        log.LogDebug($"Karafun status update: \n{e.Status}");
     }
 
 }

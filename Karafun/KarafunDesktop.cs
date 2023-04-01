@@ -14,6 +14,8 @@ namespace KarafunAPI
         public Status Status { get; private set; }
         internal bool InUse { get; private set; } = false;
 
+        public event EventHandler<StatusUpdateEventArgs> OnStatusUpdated;
+
         private bool stopping = false;
         private ClientWebSocket karafun = new();
         private Uri wsLocation = new Uri("ws://localhost:57570"); // default server address on same device
@@ -52,15 +54,31 @@ namespace KarafunAPI
             {
                 if (!InUse) // but only if there isn't already a request running
                 { 
-                    Status =await GetStatus();
-#if DEBUG
-                    Debug.WriteLine(Status.ToString());
-#endif
+                    var newStatus = await GetStatus();
+                    if (newStatus != Status)
+                    {
+                        Status = newStatus;
+                        StatusUpdated(new StatusUpdateEventArgs(Status));
+                    }
+
                 }
                 Thread.Sleep(2000);
             }
             // close the connection when done
             await karafun.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Raise the status updated event
+        /// </summary>
+        /// <param name="e">Contains e.Status, the new status</param>
+        private void StatusUpdated(StatusUpdateEventArgs e)
+        {
+            EventHandler<StatusUpdateEventArgs> handler = OnStatusUpdated;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
         }
 
         /// <summary>
@@ -71,7 +89,7 @@ namespace KarafunAPI
         private async Task<XmlDocument> Request(string request)
         {
             // wait until the coast is clear
-            while (InUse) Thread.Sleep(100);
+            while (InUse) Thread.Sleep(10);
             InUse = true;
 
             if (!(karafun.State == WebSocketState.Open))
@@ -274,6 +292,16 @@ namespace KarafunAPI
             if (newPosition > 99999) newPosition = 99999;
             string message = $"<action type=\"changeQueuePosition\" id=\"{oldPosition}\">{newPosition}</action>";
             return new Status(await Request(message));
+        }
+    }
+
+    public class StatusUpdateEventArgs : EventArgs
+    {
+        public Status Status { get; set; }
+        
+        public StatusUpdateEventArgs(Status s)
+        {
+            Status = s;
         }
     }
 }

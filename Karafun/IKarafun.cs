@@ -6,6 +6,8 @@ namespace KarafunAPI
     {
         Status Status { get; }
 
+        event EventHandler<StatusUpdateEventArgs> OnStatusUpdated;
+
         Task<Status> AddToQueue(uint songId, uint position = 99999, string singer = null);
         Task<Status> ChangeQueuePosition(uint oldPosition, uint newPosition);
         Task<Status> ClearQueue();

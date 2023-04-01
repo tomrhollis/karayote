@@ -12,7 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Botifex\Botifex.csproj" />
+    <ProjectReference Include="..\..\Botifex\Botifex.csproj" />
+    <ProjectReference Include="..\Karafun\KarafunAPI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
