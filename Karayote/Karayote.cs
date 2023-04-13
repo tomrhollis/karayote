@@ -8,21 +8,15 @@ internal class Karayote : IHostedService
 {
     private ILogger<Karayote> log;
     private IConfiguration cfg;
-    private IHostApplicationLifetime appLifetime;
     private IBotifex botifex;
     private IKarafun karafun;
 
-    public Karayote(ILogger<Karayote> log, IConfiguration cfg, IHostApplicationLifetime appLifetime, IKarafun karApi, Botifex.IBotifex botifex)
+    public Karayote(ILogger<Karayote> log, IConfiguration cfg, IKarafun karApi, Botifex.IBotifex botifex)
     {
         this.log = log;
         this.cfg = cfg;
-        this.appLifetime = appLifetime;
         this.botifex = botifex;
         karafun = karApi;
-
-        appLifetime.ApplicationStarted.Register(OnStarted);
-        appLifetime.ApplicationStopping.Register(OnStopping);
-        appLifetime.ApplicationStopped.Register(OnStopped);
 
         botifex.RegisterTextHandler(ProcessText);
         botifex.RegisterCommandHandler(ProcessCommand);        
@@ -30,35 +24,20 @@ internal class Karayote : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        log.LogInformation("StartAsync has been called.");
+        log.LogDebug("StartAsync has been called.");
         karafun.OnStatusUpdated += HandleStatusUpdate;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        log.LogInformation("StopAsync has been called.");
-    }
-
-    private void OnStarted()
-    {
-        log.LogInformation("OnStarted has been called.");
-    }
-
-    private void OnStopping()
-    {
-        log.LogInformation("OnStopping has been called.");
-    }
-
-    private void OnStopped()
-    {
-        log.LogDebug("OnStopped has been called.");
+        log.LogDebug("StopAsync has been called.");
     }
 
     private async void ProcessCommand(object? sender, CommandReceivedEventArgs e)
     {
         string optionsText = "no options";
         if (!String.IsNullOrEmpty(e.Options)) optionsText = "options " + e.Options;
-        log.LogDebug($"Tester got {e.Command} with {optionsText} from {sender.GetType()}");
+        log.LogDebug($"Tester got {e.Command.Name} with {optionsText} from {sender.GetType()}");
     }
 
     private async void ProcessText(object? sender, MessageReceivedEventArgs e)

@@ -23,7 +23,7 @@ await Host.CreateDefaultBuilder(args)
     .ConfigureServices((ctx, services) =>
     {
         services.AddMyClasses()
-                .AddSingleton<IKarafun, KarafunDesktop>()
+                .AddSingleton<IKarafun, Karafun>()
                 .AddHostedService<Karayote>();
 
              // .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")));

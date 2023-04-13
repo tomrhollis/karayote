@@ -1,4 +1,7 @@
 ﻿using KarafunAPI.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
@@ -9,7 +12,7 @@ namespace KarafunAPI
     /// <summary>
     /// Service for communicating with the Karafun websocket server
     /// </summary>
-    public class KarafunDesktop : IKarafun
+    public class Karafun : IKarafun
     {
         public Status Status { get; private set; }
         internal bool InUse { get; private set; } = false;
@@ -20,29 +23,51 @@ namespace KarafunAPI
         private ClientWebSocket karafun = new();
         private Uri wsLocation = new Uri("ws://localhost:57570"); // default server address on same device
 
+        private ILogger<Karafun> log;
+        private IConfigurationSection cfg;
+        private IHostApplicationLifetime appLifetime;
 
-        public KarafunDesktop()
+        public Karafun(ILogger<Karafun> log, IConfiguration cfg, IHostApplicationLifetime appLifetime)
         {
+            this.log = log;
+            this.cfg = cfg.GetSection("Karafun");
+            this.appLifetime = appLifetime;
+
+            appLifetime.ApplicationStarted.Register(OnStarted);
+            appLifetime.ApplicationStopping.Register(OnStopping);
+            //appLifetime.ApplicationStopped.Register(OnStopped);
+
+            string newLocation = this.cfg.GetSection("Server").Value;
+            Uri newUri = null;
+            if (!String.IsNullOrEmpty(newLocation) && Uri.TryCreate(newLocation, UriKind.Absolute, out newUri))
+                wsLocation = newUri;
         }
 
         /// <summary>
-        /// Sets the server location if necessary and starts the listener process
+        /// Starts the listener process
         /// </summary>
-        /// <param name="location">Address of the websocket server (must begin with ws://)</param>
-        public void Start(string location=null)
+        public void OnStarted()
         {
-            if (!String.IsNullOrEmpty(location)) wsLocation = new Uri(location); // set Uri if applicable
-            Debug.WriteLine("Starting websocket listener for address " + wsLocation);
+            log.LogDebug("Starting websocket listener for address " + wsLocation);
             Task.Run(Listen);
         }
 
         /// <summary>
-        /// Stop the websocket listener process
+        /// Signal the websocket listener process to stop
         /// </summary>
-        public void Stop()
+        public void OnStopping()
         {
             stopping = true;
         }
+
+        /// <summary>
+        /// Not implemented
+        /// </summary>
+        /*
+        public void OnStopped()
+        {
+
+        }*/
 
         /// <summary>
         /// Repeatedly ask the websocket server for the status of the Karafun software. Should be called as its own thread.
@@ -88,6 +113,8 @@ namespace KarafunAPI
         /// <returns>The XML response of the server as an XmlDocument object</returns>
         private async Task<XmlDocument> Request(string request)
         {
+            if (stopping) return null;
+
             // wait until the coast is clear
             while (InUse) Thread.Sleep(10);
             InUse = true;
