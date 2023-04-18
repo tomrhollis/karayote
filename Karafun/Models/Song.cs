@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Xml;
 
 namespace KarafunAPI.Models
@@ -48,6 +43,11 @@ namespace KarafunAPI.Models
                 list.Add(new Song(node));
             }
             return (list.Count > 0) ? list : null;
+        }
+
+        public override string ToString()
+        {
+            return $"{Artist} - {Title} | {Year} {Duration}s";
         }
     }
 }
