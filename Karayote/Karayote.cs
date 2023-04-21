@@ -32,7 +32,7 @@ internal class Karayote : IHostedService
                 new InteractionOption()
                 {
                     Name = "terms",
-                    Description = "the name of the song or artist to search for",
+                    Description = "the name and/or artist of the song to search for",
                     Required = true
                 }
             }
@@ -60,20 +60,31 @@ internal class Karayote : IHostedService
         ICommandInteraction interaction = (ICommandInteraction)e.Interaction;
         log.LogDebug($"Karayote got {interaction.BotifexCommand.Name} from {sender?.GetType()}");
         string testTerms = "";
-        foreach (string term in interaction.Responses.Keys)
+        foreach (string term in interaction.CommandFields.Keys)
         {
-            testTerms += $"{term}:{interaction.Responses[term]} ";
+            testTerms += $"{term}:{interaction.CommandFields[term]} ";
         }
         log.LogInformation($"Found command terms {testTerms.Trim()}");
 
         switch (interaction.BotifexCommand.Name)
         {
             case "search":
-                await interaction.Reply($"Search results for {interaction.Responses?["terms"]} would go here");
+                await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}");
+                List<Song> foundSongs = await karafun.Search(interaction.CommandFields["terms"]);
+
+                string results = "";
+                foreach (Song song in foundSongs)
+                    results += song.ToString() + "\n";
+
+                await interaction.Reply($"Search results for {interaction.CommandFields["terms"]}:\n" +
+                                        $"------------------------------\n" + results.Trim());
                 break;
+
             case "queue":
-                await interaction.Reply("Current queue would go here");
+                string status = (await karafun.GetStatus()).ToString();
+                await interaction.Reply("Status report in place of just queue for now:\n" + status);
                 break;
+
             default:
                 break;
         }
@@ -88,6 +99,7 @@ internal class Karayote : IHostedService
 
     private async void KarayoteStatusUpdate(object? sender, StatusUpdateEventArgs e)
     {
+        log.LogDebug("karayote status update fired");
         await botifex.SendStatusUpdate(e.Status.ToString());
     }
 

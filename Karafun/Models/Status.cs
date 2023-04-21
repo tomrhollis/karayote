@@ -34,6 +34,8 @@ namespace KarafunAPI.Models
 
         public List<QueueItem> SongQueue { get; internal set; }
 
+        public DateTime Timestamp { get; private set; } = DateTime.Now;
+
         internal Status(XmlDocument xml)
         {
             Debug.WriteLine(xml.ToString());
@@ -73,7 +75,7 @@ namespace KarafunAPI.Models
             output += "\n" + Volumes.ToString();
             if(SongQueue.Count > 0)
             {
-                output += "\n~~~[THE QUEUE]~~~";
+                output += "\n---[THE QUEUE]---";
                 foreach(QueueItem s in SongQueue)
                 {
                     output += "\n" + s.ToString();
