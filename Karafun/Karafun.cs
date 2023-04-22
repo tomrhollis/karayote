@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Xml;
@@ -30,6 +31,8 @@ namespace KarafunAPI
                 }
             }
         }
+
+        private ConcurrentQueue<Task> requestQueue = new ConcurrentQueue<Task>();
 
         internal bool InUse { get; private set; } = false;
 
@@ -66,7 +69,6 @@ namespace KarafunAPI
         /// </summary>
         public async void OnStarted()
         {
-            Status = await GetStatus();
             //log.LogDebug("Starting websocket listener for address " + wsLocation);
             await Task.Run(Listen);
         }
@@ -90,16 +92,38 @@ namespace KarafunAPI
         /// <summary>
         /// Repeatedly ask the websocket server for the status of the Karafun software. Should be called as its own thread.
         /// </summary>
-        private async Task Listen()
+        private void Listen()
         {
             // keep asking for updated status every second
             while (!stopping)
             {
-                if (!InUse || DateTime.Now.Subtract(Status.Timestamp).TotalSeconds > 10) // but only if there isn't already a request running or it's been too long
+                DateTime lastStatusUpdate = DateTime.Now.Subtract(new TimeSpan(0,0,3));
+
+                // if there's stuff in the queue and the server is free, do the next task
+                if (!requestQueue.IsEmpty && !InUse)
                 {
-                    Status = await GetStatus();
-                    Thread.Sleep(3000);
+                    Task request;
+                    if(requestQueue.TryDequeue(out request))
+                        request.Start();
                 }
+                
+                // if it's been a while since the last status update, add one to the pile
+                if (Status is null ||                    
+                    (DateTime.Now.Subtract(lastStatusUpdate).TotalSeconds > 12 || 
+                            (requestQueue.IsEmpty && DateTime.Now.Subtract(Status.Timestamp).TotalSeconds > 3)))
+                {                    
+                    GetStatus(callback: new Action<Status?>((Status? status) =>
+                    {
+                        Status = status;
+                        lastStatusUpdate = System.DateTime.Now;
+                    }));
+                    lastStatusUpdate = System.DateTime.Now;
+                }
+
+                if (Status is null)
+                    Thread.Sleep(3000);
+                else
+                    Thread.Sleep(50);
             }
         }
 
@@ -136,7 +160,7 @@ namespace KarafunAPI
             // wait until the coast is clear
             while (InUse)
             {
-                Thread.Sleep(10);
+                Thread.Sleep(20);
             }
             InUse = true;
 
@@ -167,21 +191,29 @@ namespace KarafunAPI
         /// </summary>
         /// <param name="noqueue">Omit the queue list from the XML response</param>
         /// <returns>The current status information from the Karafun software</returns>
-        public async Task<Status> GetStatus(bool noqueue = false)
+        public void GetStatus(Action<Status?> callback, bool noqueue = false)
         {
             string message = $"<action type=\"getStatus\"{(noqueue ? " noqueue" : "")}></action>";
-            XmlDocument status = await Request(message);
-            return status is null ? null : new Status(status);
+
+            requestQueue.Enqueue(new Task(async () =>
+            {
+                XmlDocument status = await Request(message);
+                callback.Invoke(status is null ? null : new Status(status));
+            }));
         }
         
         /// <summary>
         /// Get a list of the available song catalogs
         /// </summary>
         /// <returns>A list of song catalogs</returns>
-        public async Task<List<Catalog>> GetCatalogList()
+        public void GetCatalogList(Action<List<Catalog>> callback)
         {
             string message = "<action type=\"getCatalogList\"></action>";
-            return Catalog.ParseList(await Request(message));
+
+            requestQueue.Enqueue(new Task(async () =>
+            {
+                callback.Invoke(Catalog.ParseList(await Request(message)));
+            }));
         }
         
         /// <summary>
@@ -204,10 +236,14 @@ namespace KarafunAPI
         /// <param name="limit">The maximum number of songs to return</param>
         /// <param name="offset">The number of results to skip</param>
         /// <returns>A list of song items</returns>
-        public async Task<List<Song>> Search(string searchString, uint limit = 10, uint offset = 0)
+        public void Search(Action<List<Song>> callback, string searchString, uint limit = 10, uint offset = 0)
         {
             string message = $"<action type=\"search\" offset=\"{ offset}\" limit=\"{limit}\">{searchString}</action>";
-            return Song.ParseList(await Request(message));
+
+            requestQueue.Enqueue(new Task(async () =>
+            {
+                callback.Invoke(Song.ParseList(await Request(message)));
+            }));
         }
         
         /// <summary>

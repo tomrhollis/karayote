@@ -27,9 +27,9 @@ internal class Karayote : IHostedService
         {
             Name = "search",
             Description = "Search the Karafun song catalog",
-            Options = new List<InteractionOption>
+            Options = new List<CommandField>
             { 
-                new InteractionOption()
+                new CommandField()
                 {
                     Name = "terms",
                     Description = "the name and/or artist of the song to search for",
@@ -70,18 +70,22 @@ internal class Karayote : IHostedService
         {
             case "search":
                 await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}");
-                List<Song> foundSongs = await karafun.Search(interaction.CommandFields["terms"]);
+                karafun.Search(new Action<List<Song>>(async (List<Song> foundSongs) =>
+                {
+                    Dictionary<string,string> results = new Dictionary<string,string>();
+                    for(int i=0; i<foundSongs.Count; i++)
+                    {
+                        results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}"); 
+                    }
 
-                string results = "";
-                foreach (Song song in foundSongs)
-                    results += song.ToString() + "\n";
+                    await ((Interaction)interaction).Reply("Pick a song add yourself to the queue", results);
 
-                await interaction.Reply($"Search results for {interaction.CommandFields["terms"]}:\n" +
-                                        $"------------------------------\n" + results.Trim());
+                }), interaction.CommandFields["terms"]);
+                
                 break;
 
             case "queue":
-                string status = (await karafun.GetStatus()).ToString();
+                string status = karafun.Status.ToString();
                 await interaction.Reply("Status report in place of just queue for now:\n" + status);
                 break;
 
