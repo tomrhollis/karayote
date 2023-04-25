@@ -58,7 +58,7 @@ internal class Karayote : IHostedService
     private async void ProcessCommand(object? sender, InteractionReceivedEventArgs e)
     {
         ICommandInteraction interaction = (ICommandInteraction)e.Interaction;
-        log.LogDebug($"Karayote got {interaction.BotifexCommand.Name} from {sender?.GetType()}");
+        log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.BotifexCommand.Name} from {sender?.GetType()}");
         string testTerms = "";
         foreach (string term in interaction.CommandFields.Keys)
         {
@@ -97,13 +97,13 @@ internal class Karayote : IHostedService
     private async void ProcessText(object? sender, InteractionReceivedEventArgs e)
     {
         ITextInteraction interaction = (ITextInteraction)e.Interaction;
-        log.LogDebug($"Karayote got {interaction.Text} from {sender?.GetType()}");
-        await interaction.Reply("I see you! Please use a slash command and stop bothering me.");
+        log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.Text} from {sender?.GetType()}");
+        await interaction.Reply("I see you! Please use a slash command to make a request.");
     }
 
     private async void KarayoteStatusUpdate(object? sender, StatusUpdateEventArgs e)
     {
-        log.LogDebug("karayote status update fired");
+        log.LogDebug($"[{DateTime.Now}] karayote status update fired");
         await botifex.SendStatusUpdate(e.Status.ToString());
     }
 
