@@ -47,7 +47,7 @@ namespace KarafunAPI.Models
 
         public override string ToString()
         {
-            return $"{Artist} - {Title} | {Year} {Duration}s";
+            return $"{Artist} - {Title} | {Year} {Math.Floor(Duration/60)}:{(Duration%60):00}";
         }
     }
 }

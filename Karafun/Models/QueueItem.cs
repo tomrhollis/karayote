@@ -66,7 +66,8 @@ namespace KarafunAPI.Models
 
         public override string ToString()
         {
-            string output = $"{Id + 1}: [{Status}] {Artist} - {Title} | {Year} {Duration}s" + (!String.IsNullOrEmpty(Singer) ? $" ({Singer})" : string.Empty);
+            string output = $"{Id + 1}: [{Status}] {Artist} - {Title} | {Year} {Math.Floor(Duration / 60)}:{(Duration % 60):00}"
+                + (!String.IsNullOrEmpty(Singer) ? $" ({Singer})" : string.Empty);
             return output;
         }
     }

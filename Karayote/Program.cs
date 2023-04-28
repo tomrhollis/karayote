@@ -1,5 +1,6 @@
 ﻿using Botifex;
 using KarafunAPI;
+using Karayote;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,7 +22,7 @@ await Host.CreateDefaultBuilder(args)
     {
         services.AddMyClasses()
                 .AddSingleton<IKarafun, Karafun>()
-                .AddHostedService<Karayote>();
+                .AddHostedService<KarayoteBot>();
 
              // .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")));
              // .AddScoped(typeof(IRepository<>), typeof(Repository<>));
