@@ -14,6 +14,7 @@ namespace Karayote
         private IConfiguration cfg;
         private IBotifex botifex;
         private IKarafun karafun;
+        internal Session currentSession = new Session();
 
         public KarayoteBot(ILogger<KarayoteBot> log, IConfiguration cfg, IKarafun karApi, Botifex.IBotifex botifex)
         {
@@ -30,14 +31,14 @@ namespace Karayote
                 Name = "search",
                 Description = "Search the Karafun song catalog",
                 Options = new List<CommandField>
-            {
-                new CommandField()
                 {
-                    Name = "terms",
-                    Description = "the name and/or artist of the song to search for",
-                    Required = true
+                    new CommandField()
+                    {
+                        Name = "terms",
+                        Description = "the name and/or artist of the song to search for",
+                        Required = true
+                    }
                 }
-            }
             });
             botifex.AddCommand(new SlashCommand()
             {
@@ -49,6 +50,12 @@ namespace Karayote
                 Name = "karafunlink",
                 Description = "Get a link to use the online karafun catalog anytime"
             });
+            botifex.AddCommand(new SlashCommand() 
+            {
+                Name="opensession",
+                Description = "Open the session for searching and queueing"
+            });
+
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -59,6 +66,7 @@ namespace Karayote
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
+            currentSession.End();
             log.LogDebug("StopAsync has been called.");
         }
 
@@ -70,33 +78,60 @@ namespace Karayote
             switch (interaction.BotifexCommand.Name)
             {
                 case "search":
-                    await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}");
-                    karafun.Search(new Action<List<Song>>(async (List<Song> foundSongs) =>
+                    if (currentSession.IsOpen)
                     {
-                        Dictionary<string, string> results = new Dictionary<string, string>();
-                        for (int i = 0; i < foundSongs.Count; i++)
+                        await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}");
+                        karafun.Search(new Action<List<Song>>(async (List<Song> foundSongs) =>
                         {
-                            results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}");
-                        }
+                            Dictionary<string, string> results = new Dictionary<string, string>();
+                            for (int i = 0; i < foundSongs.Count; i++)
+                            {
+                                results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}");
+                            }
 
-                        await ((Interaction)interaction).Reply("Pick a song to add yourself to the queue", results);
+                            await ((Interaction)interaction).Reply("Pick a song to add yourself to the queue", results);
 
-                    }), interaction.CommandFields["terms"]);
-
+                        }), interaction.CommandFields["terms"]);
+                    }
+                    else
+                        await NoSessionReply(interaction);                  
                     break;
 
                 case "queue":
-                    string status = karafun.Status.ToString();
-                    await interaction.Reply("Status report in place of just queue for now:\n" + status);
+                    if(currentSession.IsOpen)
+                    {
+                        string status = karafun.Status.ToString();
+                        await interaction.Reply("Status report in place of just queue for now:\n" + status);
+                    }
+                    else
+                        await NoSessionReply(interaction);
+
                     break;
 
                 case "karafunlink":
                     await interaction.Reply("https://www.karafun.com/karaoke -- note these results may contain songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
                     break;
 
+                case "opensession":
+                    if (karafun.Status is not null)
+                    {
+                        currentSession.Open();
+                        await interaction.Reply("The session is now open to searching and queueing");
+                    }
+                    else
+                        await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");                   
+                    break;
+
                 default:
                     break;
             }
+        }
+
+        private async Task NoSessionReply(ICommandInteraction interaction)
+        {
+            string nextSession = "Not sure when the next one is, but";
+            await interaction.Reply($"There aren't any open sessions yet. {nextSession} hold your horses. Meanwhile you can search the catalog online at https://www.karafun.com/karaoke -- note these results may contain songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
+
         }
 
         private async void ProcessText(object? sender, InteractionReceivedEventArgs e)
