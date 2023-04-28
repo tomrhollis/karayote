@@ -42,6 +42,11 @@ internal class Karayote : IHostedService
             Name = "queue",
             Description = "See the current song queue"
         });
+        botifex.AddCommand(new SlashCommand()
+        {
+            Name = "karafunlink",
+            Description = "Get a link to use the online karafun catalog anytime"
+        });
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -59,12 +64,6 @@ internal class Karayote : IHostedService
     {
         ICommandInteraction interaction = (ICommandInteraction)e.Interaction;
         log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.BotifexCommand.Name} from {sender?.GetType()}");
-        string testTerms = "";
-        foreach (string term in interaction.CommandFields.Keys)
-        {
-            testTerms += $"{term}:{interaction.CommandFields[term]} ";
-        }
-        log.LogInformation($"Found command terms {testTerms.Trim()}");
 
         switch (interaction.BotifexCommand.Name)
         {
@@ -78,7 +77,7 @@ internal class Karayote : IHostedService
                         results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}"); 
                     }
 
-                    await ((Interaction)interaction).Reply("Pick a song add yourself to the queue", results);
+                    await ((Interaction)interaction).Reply("Pick a song to add yourself to the queue", results);
 
                 }), interaction.CommandFields["terms"]);
                 
@@ -87,6 +86,10 @@ internal class Karayote : IHostedService
             case "queue":
                 string status = karafun.Status.ToString();
                 await interaction.Reply("Status report in place of just queue for now:\n" + status);
+                break;
+
+            case "karafunlink":
+                await interaction.Reply("https://www.karafun.com/karaoke -- note these results may contain songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
                 break;
 
             default:

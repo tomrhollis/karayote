@@ -164,8 +164,15 @@ namespace KarafunAPI
             }
             InUse = true;
 
-            // need to reconnect and flush status data to send a request
-            await karafun.ConnectAsync(wsLocation, CancellationToken.None);
+            // need to reconnect and flush status data to send a request            
+            try
+            {
+                await karafun.ConnectAsync(wsLocation, CancellationToken.None);
+            }
+            catch (WebSocketException ex)
+            {
+                return null;
+            }
             await GetData();
 
             ArraySegment<byte> data = Encoding.UTF8.GetBytes(request);
