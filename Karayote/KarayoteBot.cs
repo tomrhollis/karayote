@@ -126,7 +126,8 @@ namespace Karayote
                     if (karafun.Status is not null)
                     {
                         currentSession.Open();
-                        await interaction.Reply("The session is now open to searching and queueing");
+                        await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me @karayotebot to make your selections and get in line.", notification: true);
+                        await interaction.Reply("The session is now open for searching and queueing");
                     }
                     else
                         await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");                   
