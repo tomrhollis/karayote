@@ -50,11 +50,17 @@ namespace Karayote
                 Name = "karafunlink",
                 Description = "Get a link to use the online karafun catalog anytime"
             });
-            botifex.AddCommand(new SlashCommand() 
+            botifex.AddCommand(new SlashCommand(adminOnly: true) 
             {
                 Name="opensession",
                 Description = "Open the session for searching and queueing"
             });
+            if(cfg.GetValue<bool>("AllowGetID"))
+                botifex.AddCommand(new SlashCommand()
+                {
+                    Name="getid",
+                    Description = "Show the id digits for this channel"
+                });
 
         }
 
@@ -109,7 +115,11 @@ namespace Karayote
                     break;
 
                 case "karafunlink":
-                    await interaction.Reply("https://www.karafun.com/karaoke -- note these results may contain songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
+                    await interaction.Reply("https://www.karafun.com/karaoke -- note that their site contains a few songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
+                    break;
+
+                case "getid":
+                    await interaction.Reply($"Chat ID: {((Interaction)interaction).Source.MessageId}");
                     break;
 
                 case "opensession":
@@ -130,8 +140,7 @@ namespace Karayote
         private async Task NoSessionReply(ICommandInteraction interaction)
         {
             string nextSession = "Not sure when the next one is, but";
-            await interaction.Reply($"There aren't any open sessions yet. {nextSession} hold your horses. Meanwhile you can search the catalog online at https://www.karafun.com/karaoke -- note these results may contain songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
-
+            await interaction.Reply($"There aren't any open sessions yet. {nextSession} hold your horses. Meanwhile you can search the catalog online at https://www.karafun.com/karaoke -- note that their site contains some songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
         }
 
         private async void ProcessText(object? sender, InteractionReceivedEventArgs e)
@@ -146,7 +155,6 @@ namespace Karayote
             log.LogDebug($"[{DateTime.Now}] karayote status update fired");
             await botifex.SendStatusUpdate(e.Status.ToString());
         }
-
     }
 }
 
