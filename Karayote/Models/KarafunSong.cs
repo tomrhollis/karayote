@@ -1,7 +1,7 @@
 ﻿using KarafunAPI.Models;
 
 
-namespace Karayote
+namespace Karayote.Models
 {
     internal class KarafunSong : ISelectedSong
     {

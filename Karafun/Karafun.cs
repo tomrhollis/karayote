@@ -34,6 +34,9 @@ namespace KarafunAPI
 
         private ConcurrentQueue<Task> requestQueue = new ConcurrentQueue<Task>();
 
+        private readonly ushort STATUS_REFRESH_ATTEMPT_SECONDS = 3;
+        private readonly ushort STATUS_REFRESH_FORCE_SECONDS = 12;
+
         internal bool InUse { get; private set; } = false;
 
         public event EventHandler<StatusUpdateEventArgs> OnStatusUpdated;
@@ -94,11 +97,11 @@ namespace KarafunAPI
         /// </summary>
         private void Listen()
         {
+            DateTime lastStatusUpdate = DateTime.Now.Subtract(new TimeSpan(0, 0, STATUS_REFRESH_ATTEMPT_SECONDS));
+
             // keep asking for updated status every second
             while (!stopping)
             {
-                DateTime lastStatusUpdate = DateTime.Now.Subtract(new TimeSpan(0,0,3));
-
                 // if there's stuff in the queue and the server is free, do the next task
                 if (!requestQueue.IsEmpty && !InUse)
                 {
@@ -109,18 +112,18 @@ namespace KarafunAPI
                 
                 // if it's been a while since the last status update, add one to the pile
                 if (Status is null ||                    
-                    (DateTime.Now.Subtract(lastStatusUpdate).TotalSeconds > 12 || 
-                            (requestQueue.IsEmpty && DateTime.Now.Subtract(Status.Timestamp).TotalSeconds > 3)))
+                    (DateTime.Now.Subtract(lastStatusUpdate).TotalSeconds > STATUS_REFRESH_FORCE_SECONDS || 
+                            (requestQueue.IsEmpty && DateTime.Now.Subtract(Status.Timestamp).TotalSeconds > STATUS_REFRESH_ATTEMPT_SECONDS)))
                 {                    
                     GetStatus(callback: new Action<Status?>((Status? status) =>
                     {
                         Status = status;
                         lastStatusUpdate = System.DateTime.Now;
                     }));
-                    lastStatusUpdate = System.DateTime.Now;
+                    lastStatusUpdate = System.DateTime.Now; // so it doesn't keep adding status updates to the queue while the other processes
                 }
 
-                if (Status is null)
+                if (Status is null) // if status is null, the connection probably hasn't been established yet so don't try so hard
                     Thread.Sleep(3000);
                 else
                     Thread.Sleep(50);
