@@ -129,13 +129,17 @@ namespace Karayote
                     break;
 
                 case "opensession":
-                    if (karafun.Status is not null)
+                    if(currentSession is not null && currentSession.IsOpen)
+                    {
+                        await interaction.Reply("The session is already open silly");
+                    }
+                    else if (karafun.Status is not null)
                     {
                         currentSession.Open();
                         await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me @karayotebot to make your selections and get in line.", notification: true);
                         await interaction.Reply("The session is now open for searching and queueing");
                     }
-                    else
+                    else if (karafun.Status is null)
                         await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");                   
                     break;
 
@@ -161,6 +165,7 @@ namespace Karayote
         private async void KarayoteStatusUpdate(object? sender, StatusUpdateEventArgs e)
         {
             log.LogDebug($"[{DateTime.Now}] karayote status update fired");
+            if (currentSession is null || !currentSession.IsOpen) return;
             await botifex.SendStatusUpdate(e.Status.ToString());
         }
 
@@ -171,7 +176,9 @@ namespace Karayote
             {
                 user = new KarayoteUser(remoteUser);
                 knownUsers.Add(user);
+                log.LogDebug($"[{DateTime.Now}] Created User: {user.Name}");
             }
+            log.LogDebug($"[{DateTime.Now}] Interacting with User: {user.Name}");
             return user;
         }
     }
