@@ -2,10 +2,11 @@
 
 namespace Karayote
 {
-    internal class YoutubeSong
+    internal class YoutubeSong : ISelectedSong
     {
         public string Id { get; private set; }
         public string Title { get; private set; } = string.Empty;
+
         public YoutubeSong(string id) 
         {
             // this needs to be checked for validity against the YouTube API eventually, instead of assuming they'll always use 11 character ids
