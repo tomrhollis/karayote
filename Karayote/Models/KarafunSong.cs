@@ -11,9 +11,17 @@ namespace Karayote.Models
 
         public string Title => $"{Song.Artist} - {Song.Title}";
 
-        KarafunSong(Song song)
+        public KarayoteUser User { get; set; }
+
+        KarafunSong(Song song, KarayoteUser user)
         {
             Song = song;
+            User = user;
+        }
+
+        public override string ToString()
+        {
+            return $"{User.Name}] {Title}";
         }
     }
 }

@@ -5,6 +5,9 @@ using KarafunAPI.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Karayote.Models;
+using Telegram.Bot.Requests;
+using Botifex.Models;
 
 namespace Karayote
 {
@@ -15,6 +18,7 @@ namespace Karayote
         private IBotifex botifex;
         private IKarafun karafun;
         internal Session currentSession = new Session();
+        private List<KarayoteUser> knownUsers = new List<KarayoteUser>();
 
         public KarayoteBot(ILogger<KarayoteBot> log, IConfiguration cfg, IKarafun karApi, Botifex.IBotifex botifex)
         {
@@ -78,7 +82,9 @@ namespace Karayote
 
         private async void ProcessCommand(object? sender, InteractionReceivedEventArgs e)
         {
+            KarayoteUser user = CreateOrFindUser(e.Interaction.User!);
             ICommandInteraction interaction = (ICommandInteraction)e.Interaction;
+            
             log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.BotifexCommand.Name} from {sender?.GetType()}");
 
             switch (interaction.BotifexCommand.Name)
@@ -146,6 +152,7 @@ namespace Karayote
 
         private async void ProcessText(object? sender, InteractionReceivedEventArgs e)
         {
+            KarayoteUser user = CreateOrFindUser(e.Interaction.User!);
             ITextInteraction interaction = (ITextInteraction)e.Interaction;
             log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.Text} from {sender?.GetType()}");
             await interaction.Reply("I see you! Please use a slash command to make a request.");
@@ -155,6 +162,17 @@ namespace Karayote
         {
             log.LogDebug($"[{DateTime.Now}] karayote status update fired");
             await botifex.SendStatusUpdate(e.Status.ToString());
+        }
+
+        private KarayoteUser CreateOrFindUser(BotifexUser remoteUser)
+        {
+            KarayoteUser? user = knownUsers.FirstOrDefault(u=>u.Guid == remoteUser.Guid);
+            if (user == null)
+            {
+                user = new KarayoteUser(remoteUser);
+                knownUsers.Add(user);
+            }
+            return user;
         }
     }
 }

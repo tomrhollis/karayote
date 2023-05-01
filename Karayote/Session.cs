@@ -11,6 +11,8 @@ namespace Karayote
         
         public bool QueueFull { get => false; } // placeholder
 
+        public SongQueue SongQueue { get; private set; } = new SongQueue();
+
         public Session() 
         {
             
