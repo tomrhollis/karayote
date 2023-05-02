@@ -1,12 +1,17 @@
-﻿using System.Text.RegularExpressions;
+﻿using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
+using Google.Apis.YouTube.v3.Data;
+using System.Text.RegularExpressions;
 
 namespace Karayote.Models
 {
     internal class YoutubeSong : ISelectedSong
     {
         public string Id { get; private set; }
-        public string Title { get; private set; } = string.Empty;
+        public string Title { get => (Video is null) ? $"YouTube video with ID {Id}" : Video.Snippet.Title; }
         public KarayoteUser User { get; private set; }
+
+        internal Video? Video = null;
 
         public YoutubeSong(string id, KarayoteUser user)
         {
@@ -32,12 +37,6 @@ namespace Karayote.Models
         {
             Id = id;
             User = user;
-            LoadYoutubeTitle();
-        }
-
-        private void LoadYoutubeTitle()
-        {
-            Title = "YouTube video with ID " + Id;
         }
 
         public override string ToString()

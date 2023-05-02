@@ -6,8 +6,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Karayote.Models;
-using Telegram.Bot.Requests;
 using Botifex.Models;
+using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
+using Google.Apis.YouTube.v3.Data;
+using Google.Apis.Util;
+using Telegram.Bot.Types;
+using System.Text.RegularExpressions;
 
 namespace Karayote
 {
@@ -17,6 +22,7 @@ namespace Karayote
         private IConfiguration cfg;
         private IBotifex botifex;
         private IKarafun karafun;
+        private YouTubeService youtube;
         internal Session currentSession = new Session();
         private List<KarayoteUser> knownUsers = new List<KarayoteUser>();
         private HashSet<Song> knownSongs = new HashSet<Song>();
@@ -28,6 +34,12 @@ namespace Karayote
             this.botifex = botifex;
             karafun = karApi;
 
+            youtube = new YouTubeService(new BaseClientService.Initializer()
+            {
+                ApplicationName = cfg.GetSection("Youtube").GetValue<string>("GoogleAPIAppName"),
+                ApiKey = cfg.GetSection("Youtube").GetValue<string>("YoutubeAPIKey")                
+            });
+            
             botifex.AddCommand(new SlashCommand()
             {
                 Name = "search",
@@ -179,33 +191,57 @@ namespace Karayote
                         await NoSessionReply(interaction);
                         break;
                     }
-
+                 
                     Uri? youtubeLink = null;
                     YoutubeSong? song = null;
                     string response = "";
                     try // the parse or if-else might fail if they put in some crappy text
                     {
                         Uri.TryCreate(interaction.CommandFields["video"], new UriCreationOptions(), out youtubeLink);
+
                         if (youtubeLink is not null)
                             song = new YoutubeSong(youtubeLink, user);
                         else
                             song = new YoutubeSong(interaction.CommandFields["video"], user);
 
-                        log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
-
-                        if (currentSession.GetInLine(song))
+                        VideosResource.ListRequest listRequest = youtube.Videos.List("snippet,contentDetails");
+                        listRequest.Id = song.Id;
+                        VideoListResponse ytVideos = listRequest.Execute();
+                        
+                        int durationMins = int.Parse(Regex.Match(ytVideos.Items[0].ContentDetails.Duration.Split("M")[0], "[\\d]{1,2}$").Value);
+                        log.LogDebug(durationMins.ToString());
+                        if (durationMins < 10 && durationMins > 0)
                         {
-                            response = $"Added video with id {song.Id} to the queue at position {currentSession.SongQueue.Count}";
-                            KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                            song.Video = ytVideos.Items[0];
+                            log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
+
+
+                            if (currentSession.GetInLine(song))
+                            {
+                                response = $"Added {song.Title} to the queue at position {currentSession.SongQueue.Count}";
+                                KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                            }
+                            else
+                                response = $"Couldn't add video with id {song.Id}, you already have a song in the queue or someone else picked that";
                         }
                         else
-                            response = $"Couldn't add video with id {song.Id}, you already have a song in the queue or someone else picked that";
+                            response = $"No can do, a Youtube video has to be less than 10 minutes long.";
+
+                    }
+                    catch(FormatException fx)
+                    {
+                        response = $"That's either a stream or less than a minute long. Nice try!";
+                    }
+                    catch(ArgumentOutOfRangeException arx)
+                    {
+                        log.LogWarning($"[{DateTime.Now}] User {user.Name} caused exception while requesting a youtube video {interaction.CommandFields["video"]}: {arx.GetType()} - {arx.Message}");
+                        response = "Couldn't find a YouTube video with that ID";
                     }
                     catch (ArgumentException ax)
                     {
                         log.LogWarning($"[{DateTime.Now}] User {user.Name} caused exception while requesting a youtube video {interaction.CommandFields["video"]}: {ax.GetType()} - {ax.Message}");
                         response = "Couldn't find a YouTube video in that. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
-                    }
+                    }                    
                     await e.Interaction.Reply(response);
                     e.Interaction.End();
                     break;
