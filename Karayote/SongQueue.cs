@@ -6,6 +6,7 @@ namespace Karayote
     internal class SongQueue
     {
         private ConcurrentQueue<ISelectedSong> songQueue = new ConcurrentQueue<ISelectedSong>();
+        public int Count { get=>songQueue.Count; }
 
         public SongQueue() { }
 
@@ -24,14 +25,29 @@ namespace Karayote
             return true;
         }
 
+        internal bool HasSong(ISelectedSong song)
+        {
+            return (songQueue.FirstOrDefault(s => s.Id == song.Id) is not null) ? true : false;
+        }
+
         public override string ToString()
         {
             string queue = "SONG QUEUE\n" +
                            "----------\n";
-            foreach (var song in songQueue)
+            if (songQueue.Count > 0)
             {
-                queue += song.ToString() + "\n";
+                int i = 1;
+                foreach (var song in songQueue)
+                {
+                    queue += $"{i}] {song}\n";
+                    i++;
+                }
             }
+            else
+            {
+                queue += "Empty";
+            }
+
             return queue.Trim();
         }
     }

@@ -1,4 +1,6 @@
 ﻿
+using Karayote.Models;
+
 namespace Karayote
 {
     internal class Session
@@ -13,9 +15,22 @@ namespace Karayote
 
         public SongQueue SongQueue { get; private set; } = new SongQueue();
 
-        public Session() 
+        private bool noRepeats = true;
+
+        public Session(bool norepeats = true) 
         {
-            
+            noRepeats = norepeats;
+        }
+
+        internal bool GetInLine(ISelectedSong song)
+        {
+            // eventually check first if other users have that song reserved
+            if (noRepeats)
+            {
+                if (SongQueue.HasSong(song)) return false;
+            }
+
+            return SongQueue.AddSong(song);
         }
 
         internal void Open()

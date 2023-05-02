@@ -19,6 +19,7 @@ namespace Karayote
         private IKarafun karafun;
         internal Session currentSession = new Session();
         private List<KarayoteUser> knownUsers = new List<KarayoteUser>();
+        private HashSet<Song> knownSongs = new HashSet<Song>();
 
         public KarayoteBot(ILogger<KarayoteBot> log, IConfiguration cfg, IKarafun karApi, Botifex.IBotifex botifex)
         {
@@ -33,7 +34,7 @@ namespace Karayote
             botifex.AddCommand(new SlashCommand()
             {
                 Name = "search",
-                Description = "Search the Karafun song catalog",
+                Description = "Search the Karafun catalog and pick a song",
                 Options = new List<CommandField>
                 {
                     new CommandField()
@@ -46,13 +47,13 @@ namespace Karayote
             });
             botifex.AddCommand(new SlashCommand()
             {
-                Name = "queue",
+                Name = "seequeue",
                 Description = "See the current song queue"
             });
             botifex.AddCommand(new SlashCommand()
             {
                 Name = "karafunlink",
-                Description = "Get a link to use the online karafun catalog anytime"
+                Description = "Get a link to the online karafun catalog anytime"
             });
             botifex.AddCommand(new SlashCommand(adminOnly: true) 
             {
@@ -101,10 +102,10 @@ namespace Karayote
                                 interaction.End();
                                 return;
                             }
-
                             Dictionary<string, string> results = new Dictionary<string, string>();
                             for (int i = 0; i < foundSongs.Count; i++)
                             {
+                                knownSongs.Add(foundSongs[i]);
                                 results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}");
                             }
                             ReplyMenu menu = new ReplyMenu("chosensong", results, ProcessMenuReply);
@@ -121,11 +122,10 @@ namespace Karayote
                                        
                     break;
 
-                case "queue":
+                case "seequeue":
                     if(currentSession.IsOpen)
                     {
-                        string status = karafun.Status.ToString();
-                        await interaction.Reply("Status report in place of just queue for now:\n" + status);
+                        await interaction.Reply(currentSession.SongQueue.ToString());
                     }
                     else
                         await NoSessionReply(interaction);
@@ -153,6 +153,7 @@ namespace Karayote
                         currentSession.Open();
                         await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me @karayotebot to make your selections and get in line.", notification: true);
                         await interaction.Reply("The session is now open for searching and queueing");
+                        KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
                     }
                     else if (karafun.Status is null)
                         await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");
@@ -184,29 +185,42 @@ namespace Karayote
             if (sender is null) throw new ArgumentException();
 
             ReplyMenu menu = (ReplyMenu)sender!;
+            string response = "";
 
-            string debugMsg = $"Karayote sees menu reply {e.Reply} for {menu.Name}";
-            log.LogDebug(debugMsg);
-            await e.Interaction.Reply(debugMsg);
+            switch (menu.Name)
+            {
+                case "chosensong":
+                    Song chosenSong = knownSongs.First(s => s.Id == uint.Parse(e.Reply));
+                    KarayoteUser user = CreateOrFindUser(e.Interaction.User!);
+                    KarafunSong karafunSong = new KarafunSong(chosenSong, user);
+
+                    log.LogDebug($"[{DateTime.Now}] Got request for {karafunSong.Title} from {user.Name} with id {user.Id}");
+
+                    response = (currentSession.GetInLine(karafunSong)) ? $"Added {karafunSong.Title} to the queue at position {currentSession.SongQueue.Count}"
+                                                                              : $"Couldn't add {karafunSong.Title}, you already have a song in the queue or someone else picked that";
+                    break;
+                default: break;
+            }
+
+            await e.Interaction.Reply(response);
+            e.Interaction.End();
         }
 
         private async void KarayoteStatusUpdate(object? sender, StatusUpdateEventArgs e)
         {
             log.LogDebug($"[{DateTime.Now}] karayote status update fired");
             if (currentSession is null || !currentSession.IsOpen) return;
-            await botifex.SendStatusUpdate(e.Status.ToString());
+            await botifex.SendStatusUpdate(currentSession.SongQueue.ToString() + "\n" + e.Status.ToString());
         }
 
         private KarayoteUser CreateOrFindUser(BotifexUser remoteUser)
         {
-            KarayoteUser? user = knownUsers.FirstOrDefault(u=>u.Guid == remoteUser.Guid);
+            KarayoteUser? user = knownUsers.FirstOrDefault(u=>u.Id == remoteUser.Guid);
             if (user == null)
             {
                 user = new KarayoteUser(remoteUser);
                 knownUsers.Add(user);
-                log.LogDebug($"[{DateTime.Now}] Created User: {user.Name}");
             }
-            log.LogDebug($"[{DateTime.Now}] Interacting with User: {user.Name}");
             return user;
         }
     }

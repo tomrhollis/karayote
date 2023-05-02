@@ -36,6 +36,7 @@ namespace KarafunAPI.Models
 
         public DateTime Timestamp { get; private set; } = DateTime.Now;
 
+
         internal Status(XmlDocument xml)
         {
             Debug.WriteLine(xml.ToString());
