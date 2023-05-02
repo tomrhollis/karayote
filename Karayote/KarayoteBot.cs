@@ -95,18 +95,30 @@ namespace Karayote
                         await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}");
                         karafun.Search(new Action<List<Song>>(async (List<Song> foundSongs) =>
                         {
+                            if (foundSongs is null || foundSongs.Count == 0)
+                            {
+                                await ((Interaction)interaction).Reply("No songs like that found in the Karafun catalog");
+                                interaction.End();
+                                return;
+                            }
+
                             Dictionary<string, string> results = new Dictionary<string, string>();
                             for (int i = 0; i < foundSongs.Count; i++)
                             {
                                 results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}");
                             }
+                            ReplyMenu menu = new ReplyMenu("chosensong", results, ProcessMenuReply);
 
-                            await ((Interaction)interaction).Reply("Pick a song to add yourself to the queue", results);
+                            await ((Interaction)interaction).ReplyWithOptions(menu, "Pick a song to add yourself to the queue");
 
                         }), interaction.CommandFields["terms"]);
                     }
                     else
-                        await NoSessionReply(interaction);                  
+                    {
+                        await NoSessionReply(interaction);
+                        interaction.End();
+                    }
+                                       
                     break;
 
                 case "queue":
@@ -117,19 +129,22 @@ namespace Karayote
                     }
                     else
                         await NoSessionReply(interaction);
+                    interaction.End();
 
                     break;
 
                 case "karafunlink":
                     await interaction.Reply("https://www.karafun.com/karaoke -- note that their site contains a few songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
+                    interaction.End();
                     break;
 
                 case "getid":
                     await interaction.Reply($"Chat ID: {((Interaction)interaction).Source.MessageId}");
+                    interaction.End();
                     break;
 
                 case "opensession":
-                    if(currentSession is not null && currentSession.IsOpen)
+                    if(currentSession.IsOpen)
                     {
                         await interaction.Reply("The session is already open silly");
                     }
@@ -140,7 +155,8 @@ namespace Karayote
                         await interaction.Reply("The session is now open for searching and queueing");
                     }
                     else if (karafun.Status is null)
-                        await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");                   
+                        await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");
+                    interaction.End();
                     break;
 
                 default:
@@ -160,6 +176,18 @@ namespace Karayote
             ITextInteraction interaction = (ITextInteraction)e.Interaction;
             log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.Text} from {sender?.GetType()}");
             await interaction.Reply("I see you! Please use a slash command to make a request.");
+            interaction.End();
+        }
+
+        private async void ProcessMenuReply(object? sender, MenuReplyReceivedEventArgs e)
+        {
+            if (sender is null) throw new ArgumentException();
+
+            ReplyMenu menu = (ReplyMenu)sender!;
+
+            string debugMsg = $"Karayote sees menu reply {e.Reply} for {menu.Name}";
+            log.LogDebug(debugMsg);
+            await e.Interaction.Reply(debugMsg);
         }
 
         private async void KarayoteStatusUpdate(object? sender, StatusUpdateEventArgs e)
