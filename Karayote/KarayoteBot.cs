@@ -28,9 +28,6 @@ namespace Karayote
             this.botifex = botifex;
             karafun = karApi;
 
-            botifex.RegisterTextHandler(ProcessText);
-            botifex.RegisterCommandHandler(ProcessCommand);
-
             botifex.AddCommand(new SlashCommand()
             {
                 Name = "search",
@@ -66,7 +63,23 @@ namespace Karayote
                     Name="getid",
                     Description = "Show the id digits for this channel"
                 });
+            botifex.AddCommand(new SlashCommand()
+            {
+                Name = "youtube",
+                Description = "Add a YouTube karaoke video",
+                Options = new List<CommandField>
+                {
+                    new CommandField()
+                    {
+                        Name = "video",
+                        Description = "the YouTube link or 11-character video id",
+                        Required = true
+                    }
+                }
+            });
 
+            botifex.RegisterTextHandler(ProcessText);
+            botifex.RegisterCommandHandler(ProcessCommand);
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -160,9 +173,48 @@ namespace Karayote
                     interaction.End();
                     break;
 
+                case "youtube":
+                    if (!currentSession.IsOpen)
+                    {
+                        await NoSessionReply(interaction);
+                        break;
+                    }
+
+                    Uri? youtubeLink = null;
+                    YoutubeSong? song = null;
+                    string response = "";
+                    try // the parse or if-else might fail if they put in some crappy text
+                    {
+                        Uri.TryCreate(interaction.CommandFields["video"], new UriCreationOptions(), out youtubeLink);
+                        if (youtubeLink is not null)
+                            song = new YoutubeSong(youtubeLink, user);
+                        else
+                            song = new YoutubeSong(interaction.CommandFields["video"], user);
+
+                        log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
+
+                        if (currentSession.GetInLine(song))
+                        {
+                            response = $"Added video with id {song.Id} to the queue at position {currentSession.SongQueue.Count}";
+                            KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                        }
+                        else
+                            response = $"Couldn't add video with id {song.Id}, you already have a song in the queue or someone else picked that";
+                    }
+                    catch (ArgumentException ax)
+                    {
+                        log.LogWarning($"[{DateTime.Now}] User {user.Name} caused exception while requesting a youtube video {interaction.CommandFields["video"]}: {ax.GetType()} - {ax.Message}");
+                        response = "Couldn't find a YouTube video in that. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
+                    }
+                    await e.Interaction.Reply(response);
+                    e.Interaction.End();
+                    break;
+
                 default:
                     break;
+                    
             }
+
         }
 
         private async Task NoSessionReply(ICommandInteraction interaction)
@@ -196,8 +248,14 @@ namespace Karayote
 
                     log.LogDebug($"[{DateTime.Now}] Got request for {karafunSong.Title} from {user.Name} with id {user.Id}");
 
-                    response = (currentSession.GetInLine(karafunSong)) ? $"Added {karafunSong.Title} to the queue at position {currentSession.SongQueue.Count}"
-                                                                              : $"Couldn't add {karafunSong.Title}, you already have a song in the queue or someone else picked that";
+                    if (currentSession.GetInLine(karafunSong))
+                    {
+                        response = $"Added {karafunSong.Title} to the queue at position {currentSession.SongQueue.Count}";
+                        KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                    }
+                    else
+                        response = $"Couldn't add {karafunSong.Title}, you already have a song in the queue or someone else picked that";
+                    
                     break;
                 default: break;
             }

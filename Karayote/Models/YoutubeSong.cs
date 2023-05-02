@@ -37,12 +37,12 @@ namespace Karayote.Models
 
         private void LoadYoutubeTitle()
         {
-            Title = "Placeholder for Youtube Title";
+            Title = "YouTube video with ID " + Id;
         }
 
         public override string ToString()
         {
-            return $"{User.Name}] {Title}";
+            return $"{User.Name}: {Title}";
         }
     }
 }
