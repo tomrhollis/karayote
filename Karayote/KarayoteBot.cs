@@ -10,8 +10,6 @@ using Botifex.Models;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
-using Google.Apis.Util;
-using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
 
 namespace Karayote
@@ -222,7 +220,7 @@ namespace Karayote
                                 KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
                             }
                             else
-                                response = $"Couldn't add video with id {song.Id}, you already have a song in the queue or someone else picked that";
+                                response = $"Couldn't add {song.Title}, you already have a song in the queue or someone else picked that";
                         }
                         else
                             response = $"No can do, a Youtube video has to be less than 10 minutes long.";

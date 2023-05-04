@@ -1,6 +1,4 @@
-﻿using Google.Apis.Services;
-using Google.Apis.YouTube.v3;
-using Google.Apis.YouTube.v3.Data;
+﻿using Google.Apis.YouTube.v3.Data;
 using System.Text.RegularExpressions;
 
 namespace Karayote.Models
