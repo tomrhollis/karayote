@@ -15,7 +15,7 @@ namespace Karayote
         public bool QueueFull { get => false; } // placeholder
 
         public SongQueue SongQueue { get; private set; } = new SongQueue();
-        private List<ISelectedSong> selectedSongs { get; set; } = new List<ISelectedSong>();
+        private List<SelectedSong> selectedSongs { get; set; } = new List<SelectedSong>();
 
         private bool noRepeats = true;
 
@@ -33,10 +33,10 @@ namespace Karayote
             noRepeats = norepeats;
         }
 
-        internal SongAddResult GetInLine(ISelectedSong song)
+        internal SongAddResult GetInLine(SelectedSong song)
         {
             // eventually check first if other users have that song reserved
-            if (noRepeats && selectedSongs.Contains(song))
+            if (noRepeats && selectedSongs.FirstOrDefault(s=>s.Id == song.Id) is not null)
                 return SongAddResult.AlreadySelected;
 
             if (SongQueue.HasUser(song.User))

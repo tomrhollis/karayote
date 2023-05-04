@@ -3,13 +3,13 @@ using System.Text.RegularExpressions;
 
 namespace Karayote.Models
 {
-    internal class YoutubeSong : ISelectedSong
+    internal class YoutubeSong : SelectedSong
     {
-        public string Id { get; private set; }
-        public string Title { get => (Video is null) ? $"YouTube video with ID {Id}" : Video.Snippet.Title; }
-        public KarayoteUser User { get; private set; }
-
         internal Video? Video = null;
+        private string id = "";
+        internal override string Id { get=>id; }
+        internal override string Title { get => (Video is null) ? $"YouTube video with ID {Id}" : Video.Snippet.Title; }
+
 
         public YoutubeSong(string id, KarayoteUser user)
         {
@@ -33,13 +33,8 @@ namespace Karayote.Models
 
         private void SetProperties(string id, KarayoteUser user)
         {
-            Id = id;
+            this.id = id;
             User = user;
-        }
-
-        public override string ToString()
-        {
-            return $"{User.Name}: {Title}";
         }
     }
 }

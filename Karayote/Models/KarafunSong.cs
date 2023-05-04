@@ -3,15 +3,13 @@
 
 namespace Karayote.Models
 {
-    public class KarafunSong : ISelectedSong
+    internal class KarafunSong : SelectedSong
     {
         Song Song { get; set; }
 
-        string ISelectedSong.Id => Song.Id.ToString();
+        internal override string Id { get => Song.Id.ToString(); } 
 
-        public string Title => $"{Song.Artist} - {Song.Title}";
-
-        public KarayoteUser User { get; set; }
+        internal override string Title { get => $"{Song.Artist} - {Song.Title}"; }
 
         public KarafunSong(Song song, KarayoteUser user)
         {
@@ -19,9 +17,6 @@ namespace Karayote.Models
             User = user;
         }
 
-        public override string ToString()
-        {
-            return $"{User.Name}: {Title}";
-        }
+
     }
 }

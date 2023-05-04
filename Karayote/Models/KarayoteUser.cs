@@ -8,7 +8,7 @@ namespace Karayote.Models
         internal Guid Id { get; private set; }
         internal string Name { get; private set; } = string.Empty;
 
-        internal ConcurrentDictionary<int, ISelectedSong> reservedSongs { get; private set; }
+        internal ConcurrentDictionary<int, SelectedSong> reservedSongs { get; private set; }
 
         private readonly int MAX_RESERVED_SONGS = 2;
 
@@ -16,7 +16,7 @@ namespace Karayote.Models
         {
             Id = botifexUser.Guid; // for now
             Name = botifexUser.UserName;
-            reservedSongs = new ConcurrentDictionary<int, ISelectedSong>();
+            reservedSongs = new ConcurrentDictionary<int, SelectedSong>();
         }
 
         /// <summary>
@@ -25,11 +25,19 @@ namespace Karayote.Models
         /// </summary>
         /// <param name="song"></param>
         /// <returns></returns>
-        internal bool AddReservedSong(ISelectedSong song)
+        internal bool AddReservedSong(SelectedSong song)
         {
             if (reservedSongs.Count >= MAX_RESERVED_SONGS) return false;
 
             return reservedSongs.TryAdd(reservedSongs.Count, song);
+        }
+
+        internal IEnumerable<SelectedSong> GetReservedSongs() 
+        { 
+            for(int i=0; i<reservedSongs.Count; i++)
+            {
+                yield return reservedSongs[i];
+            }
         }
     }
 }

@@ -88,6 +88,11 @@ namespace Karayote
                     }
                 }
             });
+            botifex.AddCommand(new SlashCommand()
+            {
+                Name = "mysongs",
+                Description = "See what songs you've selected to sing"
+            });
 
             botifex.RegisterTextHandler(ProcessText);
             botifex.RegisterCommandHandler(ProcessCommand);
@@ -181,6 +186,7 @@ namespace Karayote
                     }
                     else if (karafun.Status is null)
                         await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");
+
                     interaction.End();
                     break;
 
@@ -237,6 +243,26 @@ namespace Karayote
                     e.Interaction.End();
                     break;
 
+                case "mysongs":
+                    Tuple<SelectedSong, int>? songAtPosition = currentSession.SongQueue.GetUserSong(user);                                        
+                    response = "You have no songs in the queue or reserve";
+
+                    if (songAtPosition is not null)
+                    {
+                        response = $"1) {songAtPosition.Item1.Title} at queue position {songAtPosition.Item2}";
+                        List<SelectedSong> reserveSongs = user.GetReservedSongs().ToList();
+                        
+                        if (reserveSongs.Count > 0)
+                        {
+                            for (int i = 0;  i < reserveSongs.Count; i++)
+                                response += $"\n{i+2}) {reserveSongs[i].Title} [in reserve]";
+                        }
+                    }
+
+                    await e.Interaction.Reply(response);
+                    interaction.End();
+                        break;
+
                 default:
                     break;
                     
@@ -284,7 +310,7 @@ namespace Karayote
             e.Interaction.End();
         }
 
-        private void TryAddSong(ISelectedSong song, ref string response)
+        private void TryAddSong(SelectedSong song, ref string response)
         {
             switch (currentSession.GetInLine(song))
             {

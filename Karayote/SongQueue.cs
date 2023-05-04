@@ -5,7 +5,7 @@ namespace Karayote
 {
     internal class SongQueue
     {
-        private ConcurrentQueue<ISelectedSong> songQueue = new ConcurrentQueue<ISelectedSong>();
+        internal ConcurrentQueue<SelectedSong> songQueue = new ConcurrentQueue<SelectedSong>();
         public int Count { get => songQueue.Count; }
 
         public SongQueue() { }
@@ -16,16 +16,17 @@ namespace Karayote
         /// </summary>
         /// <param name="song">A Karafun or Youtube song selected by a user</param>
         /// <returns>Whether the song was added to the queue or not</returns>
-        internal bool AddSong(ISelectedSong song)
+        internal bool AddSong(SelectedSong song)
         {
             if (HasSong(song) || HasUser(song.User))
                 return false;
+
 
             songQueue.Enqueue(song);
             return true;
         }
 
-        internal bool HasSong(ISelectedSong song)
+        internal bool HasSong(SelectedSong song)
         {
             return (songQueue.FirstOrDefault(s => s.Id == song.Id) is not null) ? true : false;
         }
@@ -33,6 +34,15 @@ namespace Karayote
         internal bool HasUser(KarayoteUser user)
         {
             return (songQueue.FirstOrDefault(s=>s.User.Id == user.Id) is not null) ? true: false;
+        }
+
+        internal Tuple<SelectedSong,int>? GetUserSong(KarayoteUser user)
+        {
+            SelectedSong? selectedSong = songQueue.FirstOrDefault(s => s.User.Id == user.Id);
+            if (selectedSong is null) return null;
+
+            int position = songQueue.ToList().IndexOf(selectedSong) + 1;
+            return new Tuple<SelectedSong, int>(selectedSong, position);
         }
 
         public override string ToString()
