@@ -11,6 +11,7 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using System.Text.RegularExpressions;
+using static Google.Apis.Requests.BatchRequest;
 
 namespace Karayote
 {
@@ -213,18 +214,10 @@ namespace Karayote
                             song.Video = ytVideos.Items[0];
                             log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
 
-
-                            if (currentSession.GetInLine(song))
-                            {
-                                response = $"Added {song.Title} to the queue at position {currentSession.SongQueue.Count}";
-                                KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
-                            }
-                            else
-                                response = $"Couldn't add {song.Title}, you already have a song in the queue or someone else picked that";
+                            TryAddSong(song, ref response);
                         }
                         else
                             response = $"No can do, a Youtube video has to be less than 10 minutes long.";
-
                     }
                     catch(FormatException fx)
                     {
@@ -282,20 +275,38 @@ namespace Karayote
 
                     log.LogDebug($"[{DateTime.Now}] Got request for {karafunSong.Title} from {user.Name} with id {user.Id}");
 
-                    if (currentSession.GetInLine(karafunSong))
-                    {
-                        response = $"Added {karafunSong.Title} to the queue at position {currentSession.SongQueue.Count}";
-                        KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
-                    }
-                    else
-                        response = $"Couldn't add {karafunSong.Title}, you already have a song in the queue or someone else picked that";
-                    
+                    TryAddSong(karafunSong, ref response);                    
                     break;
                 default: break;
             }
 
             await e.Interaction.Reply(response);
             e.Interaction.End();
+        }
+
+        private void TryAddSong(ISelectedSong song, ref string response)
+        {
+            switch (currentSession.GetInLine(song))
+            {
+                case Session.SongAddResult.SuccessInQueue:
+                    response = $"Added {song.Title} to the queue at position {currentSession.SongQueue.Count}";
+                    KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                    break;
+                case Session.SongAddResult.SuccessInReserve:
+                    response = $"Added {song.Title} to your reserved songs as number {song.User.reservedSongs.Count}";
+                    break;
+                case Session.SongAddResult.UserReserveFull:
+                    response = $"Couldn't add {song.Title}, you've already selected 3 songs. You can delete one or select a new one after you sing next.";
+                    break;
+                case Session.SongAddResult.AlreadySelected:
+                    response = $"Couldn't add {song.Title}, someone else already picked that today";
+                    break;
+                case Session.SongAddResult.UnknownFailure:
+                    response = $"Couldn't add {song.Title}, but I'm not sure why it didn't work";
+                    break;
+                default:
+                    break;                               
+            }   
         }
 
         private async void KarayoteStatusUpdate(object? sender, StatusUpdateEventArgs e)

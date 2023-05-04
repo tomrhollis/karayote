@@ -1,5 +1,6 @@
 ﻿
 using Karayote.Models;
+using System.Collections.Concurrent;
 
 namespace Karayote
 {
@@ -14,23 +15,46 @@ namespace Karayote
         public bool QueueFull { get => false; } // placeholder
 
         public SongQueue SongQueue { get; private set; } = new SongQueue();
+        private List<ISelectedSong> selectedSongs { get; set; } = new List<ISelectedSong>();
 
         private bool noRepeats = true;
+
+        public enum SongAddResult
+        {
+            SuccessInQueue,
+            SuccessInReserve,
+            UserReserveFull,
+            AlreadySelected,
+            UnknownFailure
+        }
 
         public Session(bool norepeats = true) 
         {
             noRepeats = norepeats;
         }
 
-        internal bool GetInLine(ISelectedSong song)
+        internal SongAddResult GetInLine(ISelectedSong song)
         {
             // eventually check first if other users have that song reserved
-            if (noRepeats)
+            if (noRepeats && selectedSongs.Contains(song))
+                return SongAddResult.AlreadySelected;
+
+            if (SongQueue.HasUser(song.User))
             {
-                if (SongQueue.HasSong(song)) return false;
+                if (song.User.AddReservedSong(song))
+                {
+                    selectedSongs.Add(song);
+                    return SongAddResult.SuccessInReserve;
+                }
+                else return SongAddResult.UserReserveFull;
             }
 
-            return SongQueue.AddSong(song);
+            else if (SongQueue.AddSong(song))
+            {
+                selectedSongs.Add(song);
+                return SongAddResult.SuccessInQueue;
+            }
+            return SongAddResult.UnknownFailure;
         }
 
         internal void Open()

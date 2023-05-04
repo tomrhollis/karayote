@@ -6,7 +6,7 @@ namespace Karayote
     internal class SongQueue
     {
         private ConcurrentQueue<ISelectedSong> songQueue = new ConcurrentQueue<ISelectedSong>();
-        public int Count { get=>songQueue.Count; }
+        public int Count { get => songQueue.Count; }
 
         public SongQueue() { }
 
@@ -18,7 +18,7 @@ namespace Karayote
         /// <returns>Whether the song was added to the queue or not</returns>
         internal bool AddSong(ISelectedSong song)
         {
-            if (songQueue.FirstOrDefault(s => s.User == song.User) is not null)
+            if (HasSong(song) || HasUser(song.User))
                 return false;
 
             songQueue.Enqueue(song);
@@ -28,6 +28,11 @@ namespace Karayote
         internal bool HasSong(ISelectedSong song)
         {
             return (songQueue.FirstOrDefault(s => s.Id == song.Id) is not null) ? true : false;
+        }
+
+        internal bool HasUser(KarayoteUser user)
+        {
+            return (songQueue.FirstOrDefault(s=>s.User.Id == user.Id) is not null) ? true: false;
         }
 
         public override string ToString()
