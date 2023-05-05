@@ -159,7 +159,7 @@ namespace Karayote
                     else
                     {
                         await NoSessionReply(interaction);
-                        interaction.End();
+                        await interaction.End();
                     }
                                        
                     break;
@@ -171,18 +171,18 @@ namespace Karayote
                     }
                     else
                         await NoSessionReply(interaction);
-                    interaction.End();
+                    await interaction.End();
 
                     break;
 
                 case "karafunlink":
                     await interaction.Reply("https://www.karafun.com/karaoke -- note that their site contains a few songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
-                    interaction.End();
+                    await interaction.End();
                     break;
 
                 case "getid":
                     await interaction.Reply($"Chat ID: {((Interaction)interaction).Source.MessageId}");
-                    interaction.End();
+                    await interaction.End();
                     break;
 
                 case "opensession":
@@ -200,7 +200,7 @@ namespace Karayote
                     else if (karafun.Status is null)
                         await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");
 
-                    interaction.End();
+                    await interaction.End();
                     break;
 
                 case "youtube":
@@ -253,7 +253,7 @@ namespace Karayote
                         response = "Couldn't find a YouTube video in that. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
                     }                    
                     await e.Interaction.Reply(response);
-                    e.Interaction.End();
+                    await e.Interaction.End();
                     break;
 
                 case "mysongs":
@@ -273,37 +273,70 @@ namespace Karayote
                     }
 
                     await e.Interaction.Reply(response);
-                    interaction.End();
+                    await interaction.End();
                     break;
 
                 case "removesong":
-                    response = "Couldn't remove that song, not sure why";
                     try
                     {
                         int position = int.Parse(interaction.CommandFields["songnumber"]);
-                        
-                        if (currentSession.RemoveSong(user, position))
+
+                        if (!currentSession.SongQueue.HasUser(user))
+                            response = "You haven't selected any songs yet";
+
+                        else if (position == 1 && user.reservedSongs.Count == 0)
                         {
-                            if(position == 1)
-                                KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                            Dictionary<string, string> options = new Dictionary<string, string>
+                        {
+                            { "✅", "Yes, Delete" },
+                            { "❌", "No, Nevermind" }
+                        };
+                            ReplyMenu menu = new ReplyMenu("confirmdelete", options, ProcessMenuReply);
+                            menu.NumberedChoices = false;
 
-                            response = $"Removed your selected song #{position}. If there were any songs after it, they've moved up to take its place";
-                        }                            
+                            await ((Interaction)interaction).ReplyWithOptions(menu, "That's your last selected song so you'll lose your place in the queue. Add another song first to keep your spot. Are you sure you want to delete this now?");
+                            break;
+                        }
+
+                        else
+                            response = DeleteSong(user, position);
                     }
-                    catch(Exception ex) when (ex is FormatException or OverflowException or ArgumentNullException)
+                    catch(Exception ex) when (ex is ArgumentNullException or FormatException or OverflowException)
                     {
-                        response = "That wasn't the number of one of the songs that can be removed";
+                        response = "Well I wasn't expecting that";
                     }
-                    await e.Interaction.Reply(response);
-                    interaction.End();
 
+                    await e.Interaction.Reply(response);
+                    await interaction.End();
                     break;
 
                 default:
                     break;
                     
             }
+        }
 
+        private string DeleteSong(KarayoteUser user, int position)
+        {
+            string response = "Couldn't remove that song, not sure why";
+            bool reservedSong = user.reservedSongs.Count > 0;
+            try
+            {
+                if (currentSession.RemoveSong(user, position))
+                {
+                    response = $"Removed your selected song #{position}.";
+                    if (position == 1)
+                    {
+                        response += reservedSong ? " Your first reserved song has taken its place in the queue" : "";
+                        KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is FormatException or OverflowException or ArgumentNullException)
+            {
+                response = "That wasn't the number of one of the songs that can be removed";
+            }
+            return response;
         }
 
         private async Task NoSessionReply(ICommandInteraction interaction)
@@ -318,7 +351,7 @@ namespace Karayote
             ITextInteraction interaction = (ITextInteraction)e.Interaction;
             log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.Text} from {sender?.GetType()}");
             await interaction.Reply("I see you! Please use a slash command to make a request.");
-            interaction.End();
+            await interaction.End();
         }
 
         private async void ProcessMenuReply(object? sender, MenuReplyReceivedEventArgs e)
@@ -326,24 +359,34 @@ namespace Karayote
             if (sender is null) throw new ArgumentException();
 
             ReplyMenu menu = (ReplyMenu)sender!;
+            KarayoteUser user = CreateOrFindUser(e.Interaction.User!);
             string response = "";
 
             switch (menu.Name)
             {
                 case "chosensong":
                     Song chosenSong = knownSongs.First(s => s.Id == uint.Parse(e.Reply));
-                    KarayoteUser user = CreateOrFindUser(e.Interaction.User!);
+                    
                     KarafunSong karafunSong = new KarafunSong(chosenSong, user);
 
                     log.LogDebug($"[{DateTime.Now}] Got request for {karafunSong.Title} from {user.Name} with id {user.Id}");
 
                     TryAddSong(karafunSong, ref response);                    
                     break;
+
+                case "confirmdelete":
+                    int position = int.Parse(e.Interaction.CommandFields["songnumber"]);
+                    if (e.Reply == "✅")
+                        response = DeleteSong(user, position);
+                    else
+                        response = "OK, nevermind!";
+                    break;
+
                 default: break;
             }
 
-            await e.Interaction.Reply(response);
-            e.Interaction.End();
+            if(!String.IsNullOrEmpty(response)) await e.Interaction.Reply(response);
+            await e.Interaction.End();
         }
 
         private void TryAddSong(SelectedSong song, ref string response)

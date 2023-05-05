@@ -54,20 +54,26 @@ namespace Karayote
 
         internal bool RemoveSong(KarayoteUser user, int position)
         {
-            bool success = false;
+            SelectedSong? removedSong = null;            
+
             if(position == 1)
             {
                 if (user.reservedSongs.Count == 0)
-                    success = SongQueue.RemoveUserSong(user);
+                    removedSong = SongQueue.RemoveUserSong(user);
 
                 else
-                    success = SongQueue.ReplaceUserSong(user, user.RemoveReservedSong()!);
+                    removedSong = SongQueue.ReplaceUserSong(user, user.RemoveReservedSong()!);
             }
 
             else if (position > 1 && (position - 1) < KarayoteUser.MAX_RESERVED_SONGS)
-                success = user.RemoveReservedSong(position - 2) is not null;
+                removedSong = user.RemoveReservedSong(position - 2);
 
-            return success;
+            if (removedSong is not null)
+            {
+                selectedSongs.Remove(removedSong);
+                return true;
+            }
+            return false;
         }
 
         internal void Open()

@@ -56,32 +56,33 @@ namespace Karayote
             }            
         }
 
-        internal bool RemoveUserSong(KarayoteUser user)
+        internal SelectedSong? RemoveUserSong(KarayoteUser user)
         {
             lock (_lock)
             {
                 SelectedSong? songToRemove = songQueue.FirstOrDefault(s => s.User.Id == user.Id);
-                if (songToRemove is null) return false;
-                songQueue.Remove(songToRemove);
-                return true;
+                if (songToRemove is not null)
+                    songQueue.Remove(songToRemove);
+
+                return songToRemove;
             }
         }
 
-        internal bool ReplaceUserSong(KarayoteUser user, SelectedSong newSong)
+        internal SelectedSong? ReplaceUserSong(KarayoteUser user, SelectedSong newSong)
         {
+            SelectedSong? removedSong = null;
             lock(_lock)
             {
                 try
                 {
                     int position = songQueue.FindIndex(s => s.User.Id == user.Id);
+                    removedSong = songQueue[position];
                     songQueue[position] = newSong;
-                    return true;
                 }
                 catch (ArgumentNullException anx)
-                {
-                    return false;
-                }
+                { }
             }
+            return removedSong;
         }
 
 
