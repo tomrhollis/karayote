@@ -1,6 +1,5 @@
 ﻿
 using Karayote.Models;
-using System.Collections.Concurrent;
 
 namespace Karayote
 {
@@ -49,12 +48,20 @@ namespace Karayote
                 else return SongAddResult.UserReserveFull;
             }
 
-            else if (SongQueue.AddSong(song))
-            {
-                selectedSongs.Add(song);
-                return SongAddResult.SuccessInQueue;
-            }
-            return SongAddResult.UnknownFailure;
+            SongQueue.AddSong(song);
+            return SongAddResult.SuccessInQueue;
+        }
+
+        internal bool RemoveSong(KarayoteUser user, int position)
+        {
+            bool success = false;
+            if(position == 1)
+                success = SongQueue.RemoveUserSong(user);
+
+            else if (position > 1 && (position - 1) < KarayoteUser.MAX_RESERVED_SONGS)
+                success = user.RemoveReservedSong(position - 1);
+           
+            return success;
         }
 
         internal void Open()

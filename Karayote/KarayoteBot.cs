@@ -11,7 +11,6 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using System.Text.RegularExpressions;
-using static Google.Apis.Requests.BatchRequest;
 
 namespace Karayote
 {
@@ -92,6 +91,20 @@ namespace Karayote
             {
                 Name = "mysongs",
                 Description = "See what songs you've selected to sing"
+            });
+            botifex.AddCommand(new SlashCommand()
+            {
+                Name = "removesong",
+                Description = "Decide against singing a song",
+                Options = new List<CommandField>
+                {
+                    new CommandField
+                    {
+                        Name = "songnumber",
+                        Description = "the song's number in /mysongs",
+                        Required = true
+                    }
+                }
             });
 
             botifex.RegisterTextHandler(ProcessText);
@@ -180,7 +193,7 @@ namespace Karayote
                     else if (karafun.Status is not null)
                     {
                         currentSession.Open();
-                        await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me @karayotebot to make your selections and get in line.", notification: true);
+                        await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me to make your selections and get in line.", notification: true);
                         await interaction.Reply("The session is now open for searching and queueing");
                         KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
                     }
@@ -261,7 +274,27 @@ namespace Karayote
 
                     await e.Interaction.Reply(response);
                     interaction.End();
-                        break;
+                    break;
+
+                case "removesong":
+                    response = "Couldn't remove that song, not sure why";
+                    try
+                    {
+                        int position = int.Parse(interaction.CommandFields["songnumber"]);
+
+                        bool success = currentSession.RemoveSong(user, position);
+
+                        if (success)
+                            response = $"Removed selected song #{position}. If there were any songs after it, they've moved up to take its place";
+                    }
+                    catch(Exception ex) when (ex is FormatException or OverflowException or ArgumentNullException)
+                    {
+                        response = "That wasn't the number of one of the songs that can be removed";
+                    }
+                    await e.Interaction.Reply(response);
+                    interaction.End();
+
+                    break;
 
                 default:
                     break;

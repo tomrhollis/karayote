@@ -1,5 +1,4 @@
 ﻿using Botifex.Models;
-using System.Collections.Concurrent;
 
 namespace Karayote.Models
 {
@@ -8,15 +7,16 @@ namespace Karayote.Models
         internal Guid Id { get; private set; }
         internal string Name { get; private set; } = string.Empty;
 
-        internal ConcurrentDictionary<int, SelectedSong> reservedSongs { get; private set; }
+        internal List<SelectedSong> reservedSongs { get; private set; }
+        private readonly object _lock = new object();
 
-        private readonly int MAX_RESERVED_SONGS = 2;
+        internal static readonly int MAX_RESERVED_SONGS = 2;
 
         internal KarayoteUser(BotifexUser botifexUser)
         {
             Id = botifexUser.Guid; // for now
             Name = botifexUser.UserName;
-            reservedSongs = new ConcurrentDictionary<int, SelectedSong>();
+            reservedSongs = new List<SelectedSong>();
         }
 
         /// <summary>
@@ -27,16 +27,37 @@ namespace Karayote.Models
         /// <returns></returns>
         internal bool AddReservedSong(SelectedSong song)
         {
-            if (reservedSongs.Count >= MAX_RESERVED_SONGS) return false;
+            lock( _lock )
+            {
+                if (reservedSongs.Count >= MAX_RESERVED_SONGS) return false;
 
-            return reservedSongs.TryAdd(reservedSongs.Count, song);
+                reservedSongs.Add(song);
+                return true;
+            }
+
         }
 
-        internal IEnumerable<SelectedSong> GetReservedSongs() 
-        { 
-            for(int i=0; i<reservedSongs.Count; i++)
+        internal List<SelectedSong> GetReservedSongs() 
+        {
+            lock (_lock)
             {
-                yield return reservedSongs[i];
+                return new List<SelectedSong>(reservedSongs);
+            }            
+        }
+
+        internal bool RemoveReservedSong(int position)
+        {
+            lock(_lock)
+            {
+                try
+                {
+                    reservedSongs.RemoveAt(position - 1);
+                    return true;
+                }
+                catch (ArgumentOutOfRangeException aorx)
+                {
+                    return false;
+                }
             }
         }
     }
