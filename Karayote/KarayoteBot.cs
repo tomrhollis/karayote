@@ -281,11 +281,14 @@ namespace Karayote
                     try
                     {
                         int position = int.Parse(interaction.CommandFields["songnumber"]);
+                        
+                        if (currentSession.RemoveSong(user, position))
+                        {
+                            if(position == 1)
+                                KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
 
-                        bool success = currentSession.RemoveSong(user, position);
-
-                        if (success)
-                            response = $"Removed selected song #{position}. If there were any songs after it, they've moved up to take its place";
+                            response = $"Removed your selected song #{position}. If there were any songs after it, they've moved up to take its place";
+                        }                            
                     }
                     catch(Exception ex) when (ex is FormatException or OverflowException or ArgumentNullException)
                     {
@@ -352,10 +355,10 @@ namespace Karayote
                     KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
                     break;
                 case Session.SongAddResult.SuccessInReserve:
-                    response = $"Added {song.Title} to your reserved songs as number {song.User.reservedSongs.Count}";
+                    response = $"Added {song.Title} to your reserved songs";
                     break;
                 case Session.SongAddResult.UserReserveFull:
-                    response = $"Couldn't add {song.Title}, you've already selected 3 songs. You can delete one or select a new one after you sing next.";
+                    response = $"Couldn't add {song.Title}, you've already selected 3 songs. You can delete one or select a new one after you sing next";
                     break;
                 case Session.SongAddResult.AlreadySelected:
                     response = $"Couldn't add {song.Title}, someone else already picked that today";

@@ -45,18 +45,19 @@ namespace Karayote.Models
             }            
         }
 
-        internal bool RemoveReservedSong(int position)
+        internal SelectedSong? RemoveReservedSong(int position=0)
         {
             lock(_lock)
             {
                 try
                 {
-                    reservedSongs.RemoveAt(position - 1);
-                    return true;
+                    SelectedSong removedSong = reservedSongs[position];
+                    reservedSongs.RemoveAt(position);
+                    return removedSong;
                 }
                 catch (ArgumentOutOfRangeException aorx)
                 {
-                    return false;
+                    return null;
                 }
             }
         }

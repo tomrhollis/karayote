@@ -56,11 +56,17 @@ namespace Karayote
         {
             bool success = false;
             if(position == 1)
-                success = SongQueue.RemoveUserSong(user);
+            {
+                if (user.reservedSongs.Count == 0)
+                    success = SongQueue.RemoveUserSong(user);
+
+                else
+                    success = SongQueue.ReplaceUserSong(user, user.RemoveReservedSong()!);
+            }
 
             else if (position > 1 && (position - 1) < KarayoteUser.MAX_RESERVED_SONGS)
-                success = user.RemoveReservedSong(position - 1);
-           
+                success = user.RemoveReservedSong(position - 2) is not null;
+
             return success;
         }
 

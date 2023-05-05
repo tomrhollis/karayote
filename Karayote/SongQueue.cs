@@ -60,24 +60,38 @@ namespace Karayote
         {
             lock (_lock)
             {
-                SelectedSong? songToRemove = songQueue.ToList().FirstOrDefault(s => s.User.Id == user.Id);
+                SelectedSong? songToRemove = songQueue.FirstOrDefault(s => s.User.Id == user.Id);
                 if (songToRemove is null) return false;
                 songQueue.Remove(songToRemove);
                 return true;
             }
         }
 
+        internal bool ReplaceUserSong(KarayoteUser user, SelectedSong newSong)
+        {
+            lock(_lock)
+            {
+                try
+                {
+                    int position = songQueue.FindIndex(s => s.User.Id == user.Id);
+                    songQueue[position] = newSong;
+                    return true;
+                }
+                catch (ArgumentNullException anx)
+                {
+                    return false;
+                }
+            }
+        }
+
+
         /*
         internal SelectedSong SwapUserSong(KarayoteUser user, SelectedSong song)
         {
             //
         }
+           */
 
-        internal bool ReplaceUserSong(KarayoteUser user, SelectedSong song)
-        {
-            //
-        }
-        */
         public override string ToString()
         {
             string queue = "SONG QUEUE\n" +
