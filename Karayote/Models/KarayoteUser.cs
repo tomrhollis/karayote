@@ -61,5 +61,20 @@ namespace Karayote.Models
                 }
             }
         }
+
+        internal bool SwitchReservedSongs(int position1, int position2)
+        {
+            try
+            {
+                SelectedSong placeholder = reservedSongs[position1];
+                reservedSongs[position1] = reservedSongs[position2];
+                reservedSongs[position2] = placeholder;
+                return true;
+            }
+            catch(ArgumentOutOfRangeException aorx)
+            {
+                return false;
+            }
+        }
     }
 }

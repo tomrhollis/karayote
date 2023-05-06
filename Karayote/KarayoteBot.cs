@@ -11,6 +11,8 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using System.Text.RegularExpressions;
+using static Google.Apis.Requests.BatchRequest;
+using Telegram.Bot.Types;
 
 namespace Karayote
 {
@@ -102,6 +104,26 @@ namespace Karayote
                     {
                         Name = "songnumber",
                         Description = "the song's number in /mysongs",
+                        Required = true
+                    }
+                }
+            });
+            botifex.AddCommand(new SlashCommand()
+            {
+                Name = "switchsongs",
+                Description = "Switch priority of two songs",
+                Options = new List<CommandField>
+                {
+                    new CommandField
+                    {
+                        Name = "song1",
+                        Description = "the first song's number in your list",
+                        Required = true
+                    },
+                    new CommandField
+                    {
+                        Name = "song2",
+                        Description = "the second song's number in your list",
                         Required = true
                     }
                 }
@@ -257,20 +279,7 @@ namespace Karayote
                     break;
 
                 case "mysongs":
-                    Tuple<SelectedSong, int>? songAtPosition = currentSession.SongQueue.GetUserSong(user);                                        
-                    response = "You have no songs in the queue or reserve";
-
-                    if (songAtPosition is not null)
-                    {
-                        response = $"1) {songAtPosition.Item1.Title} at queue position {songAtPosition.Item2}";
-                        List<SelectedSong> reserveSongs = user.GetReservedSongs().ToList();
-                        
-                        if (reserveSongs.Count > 0)
-                        {
-                            for (int i = 0;  i < reserveSongs.Count; i++)
-                                response += $"\n{i+2}) {reserveSongs[i].Title} [in reserve]";
-                        }
-                    }
+                    response = GetMySongs(user);
 
                     await e.Interaction.Reply(response);
                     await interaction.End();
@@ -299,7 +308,7 @@ namespace Karayote
                         }
 
                         else
-                            response = DeleteSong(user, position);
+                            response = DeleteSong(user, position) + "\n\n" + GetMySongs(user);
                     }
                     catch(Exception ex) when (ex is ArgumentNullException or FormatException or OverflowException)
                     {
@@ -310,10 +319,59 @@ namespace Karayote
                     await interaction.End();
                     break;
 
+                case "switchsongs":
+                    response = "Couldn't switch the songs for some reason";
+                    try
+                    {
+                        int position1 = int.Parse(interaction.CommandFields["song1"]);
+                        int position2 = int.Parse(interaction.CommandFields["song2"]);
+
+                        if (!currentSession.SongQueue.HasUser(user) || user.reservedSongs.Count == 0)
+                            response = "You haven't selected two songs yet to switch them";
+
+                        else
+                        {
+                            bool success = currentSession.SwitchUserSongs(user, position1, position2);
+
+                            if (success)
+                            {
+                                response = "Done!\n\n" + GetMySongs(user);
+                                if(Math.Min(position1, position2) == 1)
+                                    KarayoteStatusUpdate(null, new StatusUpdateEventArgs(karafun.Status));
+                            }
+                        }
+                    }
+                    catch (Exception ex) when (ex is ArgumentNullException or FormatException or OverflowException)
+                    {
+                        response = "One or both of those wasn't even a number!";
+                    }
+
+                    await e.Interaction.Reply(response);
+                    await interaction.End();
+                    break;
+
                 default:
                     break;
-                    
             }
+        }
+
+        private string GetMySongs(KarayoteUser user)
+        {
+            string response = "You have no songs in the queue or reserve";
+            Tuple<SelectedSong, int>? songAtPosition = currentSession.SongQueue.GetUserSong(user);
+            
+            if (songAtPosition is not null)
+            {
+                response = $"Your Selected Songs:\n1) {songAtPosition.Item1.Title} at queue position {songAtPosition.Item2}";
+                List<SelectedSong> reserveSongs = user.GetReservedSongs().ToList();
+
+                if (reserveSongs.Count > 0)
+                {
+                    for (int i = 0; i < reserveSongs.Count; i++)
+                        response += $"\n{i + 2}) {reserveSongs[i].Title} [in reserve]";
+                }
+            }
+            return response;
         }
 
         private string DeleteSong(KarayoteUser user, int position)
@@ -371,13 +429,14 @@ namespace Karayote
 
                     log.LogDebug($"[{DateTime.Now}] Got request for {karafunSong.Title} from {user.Name} with id {user.Id}");
 
-                    TryAddSong(karafunSong, ref response);                    
+                    TryAddSong(karafunSong, ref response);
+                    response += "\n\n" + GetMySongs(user);
                     break;
 
                 case "confirmdelete":
                     int position = int.Parse(e.Interaction.CommandFields["songnumber"]);
                     if (e.Reply == "✅")
-                        response = DeleteSong(user, position);
+                        response = DeleteSong(user, position) + "\n\n" + GetMySongs(user);
                     else
                         response = "OK, nevermind!";
                     break;

@@ -76,6 +76,22 @@ namespace Karayote
             return false;
         }
 
+        internal bool SwitchUserSongs(KarayoteUser user, int position1, int position2)
+        {
+            SelectedSong laterSong = user.reservedSongs[Math.Max(position1, position2)-2];
+            if (Math.Min(position1, position2) == 1)
+            {
+                SelectedSong? songFromQueue = SongQueue.ReplaceUserSong(user, laterSong);
+                if (songFromQueue is null) return false;
+
+                user.reservedSongs[Math.Max(position1, position2) - 2] = songFromQueue;
+                return true;
+            }
+            else
+                return user.SwitchReservedSongs(position1 - 2, position2 - 2);
+
+        }
+
         internal void Open()
         {
             OpenTime = DateTime.Now;
