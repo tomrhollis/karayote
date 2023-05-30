@@ -1,4 +1,9 @@
-﻿using Botifex;
+﻿///
+/// Karayote - Karaoke event management app
+/// (c) 2023
+///
+
+using Botifex;
 using KarafunAPI;
 using Karayote;
 using Microsoft.Extensions.Configuration;
@@ -10,8 +15,8 @@ await Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration((ctx, cfg) =>
     {
         cfg.SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile("botsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) // non-sensitive settings
+            .AddJsonFile("botsettings.json", optional: true, reloadOnChange: true) // sensitive settings such as API keys
             .Build();
     })
     .ConfigureLogging((ctx, logging) =>
@@ -20,9 +25,9 @@ await Host.CreateDefaultBuilder(args)
     })
     .ConfigureServices((ctx, services) =>
     {
-        services.AddMyClasses()
-                .AddSingleton<IKarafun, Karafun>()
-                .AddHostedService<KarayoteBot>();
+        services.AddMyClasses() // messaging bots
+                .AddSingleton<IKarafun, Karafun>() // karafun API
+                .AddHostedService<KarayoteBot>(); // the controller
 
              // .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")));
              // .AddScoped(typeof(IRepository<>), typeof(Repository<>));
