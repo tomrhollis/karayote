@@ -421,6 +421,17 @@ namespace Karayote
                         response += $"\n{i + 2}) {reserveSongs[i].Title} [in reserve]";
                 }
             }
+
+            // tack on any previously sung songs in this session as a history
+            List<SelectedSong>? history = currentSession.GetUserHistory(user);
+            if(history is not null)
+            {
+                response += "\nPreviously sung songs:";
+                foreach (var item in history)
+                {
+                    response += "\n" + item.ToString();
+                }
+            }
             return response;
         }
 

@@ -21,15 +21,15 @@ namespace Karayote.Models
         /// </summary>
         internal KarayoteUser User { get; private protected set; }
 
-        /*
-        internal enum SelectionState
-        {
-            Reserved,
-            Queued,
-            Singing,
-            SangToday
-        }
-        internal SelectionState State { get; set; }*/
+        /// <summary>
+        /// The time the song was sung, that is the singer finished singing with at least half of the song done
+        /// </summary>
+        internal DateTime? SungTime { get; private protected set; }
+
+        /// <summary>
+        /// Whether the song has already been sung or not
+        /// </summary>
+        internal bool WasSung { get => SungTime != null; } 
 
         /// <summary>
         /// Construct a new <see cref="SelectedSong"/> for a specific user
@@ -41,12 +41,21 @@ namespace Karayote.Models
         }
 
         /// <summary>
+        /// Set the time the song was sung to flag that this selection was actually sung
+        /// </summary>
+        internal void SetSungTime()
+        {
+            SungTime = DateTime.Now;
+        }
+
+        /// <summary>
         /// Represent this <see cref="SelectedSong"/> in string form
         /// </summary>
         /// <returns>A default <see cref="string"/> representing the information in this object</returns>
         public override string ToString()
         {
-            return $"{User.Name}: {Title}";
+            string sungTime = WasSung ? $" (Sung at {SungTime!.Value.ToLocalTime().Hour}:{SungTime!.Value.ToLocalTime().Minute})" : String.Empty;
+            return $"{User.Name}: {Title}{sungTime}";
         }
     }
 }

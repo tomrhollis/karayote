@@ -38,7 +38,7 @@ namespace Karayote
         /// </summary>
         public SongQueue SongQueue { get; private set; } = new SongQueue();
 
-        private List<SelectedSong> selectedSongs = new List<SelectedSong>();
+        private List<SelectedSong> selectedSongs = new List<SelectedSong>(); // songs that were selected tonight and still in waiting, or were successfully sung
         private bool noRepeats = true; // plaeholder for a potential future settings option.
                                        // Until then it's not allowed for multiple people to sing the same song in a session
 
@@ -116,8 +116,8 @@ namespace Karayote
             else if (position > 1 && (position - 1) < KarayoteUser.MAX_RESERVED_SONGS)
                 removedSong = user.RemoveReservedSong(position - 2);
 
-            // if it worked, clean the song out of the song history for this session so it can be selected again
-            if (removedSong is not null)
+            // if it worked, clean the song out of the song history for this session so it can be selected again (unless it was actually sung already)
+            if (removedSong is not null && !removedSong.WasSung)
             {
                 selectedSongs.Remove(removedSong);
                 return true;
@@ -166,6 +166,18 @@ namespace Karayote
             // when both positions are in the user's reserve
             else
                 return user.SwitchReservedSongs(position1 - 2, position2 - 2);
+        }
+
+        /// <summary>
+        /// Find all <see cref="SelectedSong"/>s in the session history that were actually sung by a particular <see cref="KarayoteUser"/>
+        /// </summary>
+        /// <param name="user">The <see cref="KarayoteUser"/> to check the history for</param>
+        /// <returns>A <see cref="List"/> of <see cref="SelectedSong"/>s that user sang earlier in this session or <see cref="null"/> if not applicable</returns>
+        internal List<SelectedSong>? GetUserHistory(KarayoteUser user)
+        {
+            if (selectedSongs.FirstOrDefault(s => s.WasSung && s.User.Id == user.Id) == null) return null;
+
+            return selectedSongs.FindAll(s => s.WasSung && s.User.Id == user.Id);
         }
 
         /// <summary>

@@ -41,14 +41,17 @@ namespace KarafunAPI
         public event EventHandler<StatusUpdateEventArgs> OnStatusUpdated;
         private DateTime lastStatusUpdate = DateTime.Now;
 
-        private ConcurrentQueue<Task> requestQueue = new ConcurrentQueue<Task>(); // to make sure only one request is going to the program at a time
+        private ConcurrentQueue<Task> requestQueue = new ConcurrentQueue<Task>(); // to make sure only one request is going to the Karafun server at a time
 
         private readonly ushort STATUS_REFRESH_ATTEMPT_SECONDS = 3; // how often to refresh status when the queue is empty
         private readonly ushort STATUS_REFRESH_FORCE_SECONDS = 12;  // how often to refresh status when more important things have delayed it
 
+        /// <summary>
+        /// Indicate whether there's an active request going out to the websocket server already
+        /// </summary>
         internal bool InUse { get; private set; } = false;        
-
         private bool stopping = false;
+
         private ClientWebSocket karafun = new();
         private Uri wsLocation = new Uri("ws://localhost:57570"); // default server address on same device
 
@@ -174,14 +177,14 @@ namespace KarafunAPI
             }
             InUse = true;
 
-            // need to reconnect and flush status data to send a request for some reason         
+            // need to reconnect and flush data first to send a request for some reason         
             try
             {
                 CancellationTokenSource cts = new CancellationTokenSource(STATUS_REFRESH_ATTEMPT_SECONDS * 1000); // so it times out if karafun isn't running
                 await karafun.ConnectAsync(wsLocation, cts.Token);
                 await GetData();
             }
-            catch (Exception ex)
+            catch (Exception ex) // most likely the karafun server hasn't been turned on yet
             {
                 log.LogWarning($"[{DateTime.Now}] {ex.GetType()} - {ex.Message}");
                 karafun = new();
@@ -189,14 +192,12 @@ namespace KarafunAPI
                 return null;
             }            
 
+            // the actual request for data
             ArraySegment<byte> data = Encoding.UTF8.GetBytes(request);
             await karafun.SendAsync(data, WebSocketMessageType.Text, true, CancellationToken.None);
             string response = await GetData();
 
-#if DEBUG
-            //Debug.WriteLine(response);
-#endif
-            // need to dispose and recreate websocket client to start fresh next request or will get old data (unsure why)
+            // need to dispose and recreate websocket client to start fresh next request or it will get old data next time (unsure why)
             await karafun.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
             karafun.Dispose();
             karafun = new();           
@@ -385,7 +386,7 @@ namespace KarafunAPI
         /// <param name="singer">Optional name of the person who chose this song</param>
         public void AddToQueue(uint songId, uint position = 99999, string singer = null)
         {
-            if (position > 99999) position = 99999;
+            position = Math.Clamp(position, 0, 99999);
             string message = $"<action type=\"addToQueue\" song=\"{songId}\" singer=\"{singer}\">{position}</action>";
             requestQueue.Enqueue(new Task(async () =>
             {
@@ -399,7 +400,7 @@ namespace KarafunAPI
         /// <param name="position">Queue position of the song to remove</param>
         public void RemoveFromQueue(uint position)
         {
-            if (position > 99999) position = 99999;
+            position = Math.Clamp(position, 0, 99999);
             string message = $"<action type=\"removeFromQueue\" id=\"{position}\"></action>";
             requestQueue.Enqueue(new Task(async () =>
             {
@@ -414,8 +415,8 @@ namespace KarafunAPI
         /// <param name="newPosition">The desired new position of the song, 0 for top 99999 for bottom</param>
         public void ChangeQueuePosition(uint oldPosition, uint newPosition)
         {
-            if (oldPosition > 99999) oldPosition = 99999;
-            if (newPosition > 99999) newPosition = 99999;
+            oldPosition = Math.Clamp(oldPosition, 0, 99999);
+            newPosition = Math.Clamp(newPosition, 0, 99999);
             string message = $"<action type=\"changeQueuePosition\" id=\"{oldPosition}\">{newPosition}</action>";
             requestQueue.Enqueue(new Task(async () =>
             {
