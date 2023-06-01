@@ -27,7 +27,17 @@ namespace Karayote
         /// Whether the queue is actually open for additions right now
         /// </summary>
         public bool IsOpen { get => (OpenTime is not null && DateTime.Now > OpenTime) && (EndTime is null || DateTime.Now < EndTime) && !QueueFull; }
-        
+
+        /// <summary>
+        /// Whether the queue is flowing
+        /// </summary>
+        public bool IsStarted { get => (StartTime is not null && DateTime.Now > StartTime) && (EndTime is null || DateTime.Now < EndTime); }
+
+        /// <summary>
+        /// Whether this session is done and no more songs will be sung
+        /// </summary>
+        public bool IsOver { get => (EndTime is not null && DateTime.Now > EndTime); }
+
         /// <summary>
         /// Whether the <see cref="SongQueue"/> is long enough to overrun the scheduled <see cref="EndTime"/>
         /// </summary>
@@ -194,6 +204,19 @@ namespace Karayote
         internal void Start()
         {
             StartTime = DateTime.Now;
+        }
+
+        /// <summary>
+        /// Move to the next song in the queue
+        /// </summary>
+        internal void NextSong()
+        {
+            SelectedSong? previousSong = SongQueue.Pop();
+            if(previousSong is not null)
+            {
+                int index = selectedSongs.FindIndex(s=>s.Id == previousSong.Id);
+                selectedSongs[index].SetSungTime();
+            }
         }
 
         /// <summary>

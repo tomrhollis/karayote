@@ -11,7 +11,6 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using System.Text.RegularExpressions;
-using Telegram.Bot.Types;
 
 namespace Karayote
 {
@@ -79,7 +78,7 @@ namespace Karayote
                 Description = "Open the session for searching and queueing"
             });
             if(cfg.GetValue<bool>("AllowGetID"))
-                botifex.AddCommand(new SlashCommand()
+                botifex.AddCommand(new SlashCommand(adminOnly: true)
                 {
                     Name="getid",
                     Description = "Show the id digits for this channel"
@@ -136,6 +135,16 @@ namespace Karayote
                         Required = true
                     }
                 }
+            });
+            botifex.AddCommand(new SlashCommand()
+            {
+                Name = "help",
+                Description = "Get some guidance on how to use this"
+            });
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
+            {
+                Name = "startsession",
+                Description = "Start the first song"
             });
 
             // register handlers for different messenger input types
@@ -255,7 +264,7 @@ namespace Karayote
                     {
                         currentSession.Open();
                         await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me to make your selections and get in line.", notification: true);
-                        await interaction.Reply("The session is now open for searching and queueing");
+                        await interaction.Reply("The session is now open for searching and queueing.");
                         await KarayoteStatusUpdate(karafun.Status);
                     }
                     await interaction.End();
@@ -393,6 +402,29 @@ namespace Karayote
                     await interaction.End();
                     break;
 
+                case "help":
+                    response = "How to use this bot:\n\n" +
+                               "Before the event, you can search the catalog using the link from /karafunlink, or search youtube for ideas\n\n" +
+                               "A little while before singing starts, the bot will open for searching and getting in line. Then you can use /search to find and add Karafun songs to your selections, or /youtube to add a youtube song\n\n" +
+                               "/mysongs will show you what you've selected and /seequeue will show you what the queue is looking like\n\n" +
+                               "After you look at /mysongs for the order your songs are in, you can use /switchsongs to change their order or /removesong to get rid of one\n\n" +
+                               "When the singing starts, you'll get a DM from the bot when the person before you starts singing. Don't miss your turn!";
+                    await e.Interaction.Reply(response);
+                    await interaction.End();
+                    break;
+
+                case "startsession":
+                    response = "This session was already started";
+                    if (!currentSession.IsStarted && !currentSession.IsOver) // make sure this hasn't already been done
+                    {
+                        currentSession.Start();
+                        await botifex.SendOneTimeStatusUpdate("And the singing starts.... NOW!");
+                        response = "The queue is now flowing!";                    
+                    }
+                    await e.Interaction.Reply(response);
+                    await interaction.End();
+                    break;                    
+
                 default:
                     break;
             }
@@ -472,7 +504,7 @@ namespace Karayote
         private async Task NoSessionReply(ICommandInteraction interaction)
         {
             // message for when it's not the scheduled start time yet
-            if (currentSession.StartTime > DateTime.Now)
+            if (currentSession.StartTime is null || currentSession.StartTime > DateTime.Now)
             {
                 string nextSession = "Not sure when the next one is, but"; // eventually will check for future sessions when those exist
                 await interaction.Reply($"There aren't any open sessions yet. {nextSession} hold your horses. Meanwhile you can search the catalog online at https://www.karafun.com/karaoke -- note that their site contains some songs not licensed for use in Canada. If you can't find them through /search when the event starts, that's probably why");
@@ -492,10 +524,23 @@ namespace Karayote
         {
             // track the user
             KarayoteUser user = CreateOrFindUser(e.Interaction.User!);
+
             ITextInteraction interaction = (ITextInteraction)e.Interaction;
+#if DEBUG
             log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.Text} from {sender?.GetType()}");
-            // just tell them to use a command
-            await interaction.Reply("I see you! Please use a slash command to make a request.");
+#endif
+            string reply = "";
+            // if this is a /start command from interacting with the telegram bot for the first time
+            if(interaction is TelegramTextInteraction && interaction.Text == "/start")
+            {
+                reply = "Hey there! Check out the menu button at the bottom to see your options, or type /help for more information";
+            }
+            // otherwise just tell them to use a command
+            else
+            {
+                reply = "I see you! Please use a slash command to make a request.";
+            }
+            await interaction.Reply(reply);
             await interaction.End();
         }
 

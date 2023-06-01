@@ -16,6 +16,16 @@ namespace Karayote
         public int Count { get => songQueue.Count; }
 
         /// <summary>
+        /// Return the currently active <see cref="SelectedSong"/>, if it exists
+        /// </summary>
+        internal SelectedSong? NowPlaying { get => songQueue.Count > 0 ? songQueue[0] : null; }
+
+        /// <summary>
+        /// Return the <see cref="SelectedSong"/> that's next up in line, if it exists
+        /// </summary>
+        internal SelectedSong? NextUp { get => songQueue.Count > 1 ? songQueue[1] : null; }
+
+        /// <summary>
         /// Default constructor to create a new <see cref="SongQueue"/>
         /// </summary>
         public SongQueue() { }
@@ -119,6 +129,22 @@ namespace Karayote
             }
             return removedSong;
         }
+
+        /// <summary>
+        /// Remove the first song from the song queue and return it. This represents the currently active song being completed or canceled.
+        /// </summary>
+        /// <returns>The <see cref="SelectedSong"/> that was just completed, or <see cref="null"/> if the queue was empty</returns>
+        public SelectedSong? Pop()
+        {
+            if (songQueue.Count == 0) return null;
+            lock (_lock)
+            {
+                SelectedSong song = songQueue.First();
+                songQueue.RemoveAt(0);
+                return song;
+            }            
+        }
+
 
         /// <summary>
         /// Convert this object to a <see cref="string"/>, as you do

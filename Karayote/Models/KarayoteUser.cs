@@ -22,6 +22,7 @@ namespace Karayote.Models
         /// </summary>
         internal int ReservedSongCount { get => reservedSongs.Count; }
 
+        private BotifexUser? botUser;
         private List<SelectedSong> reservedSongs { get; set; }
         private readonly object _lock = new object(); // primitive thread safety but more flexibility needed than modern options allow
 
@@ -34,8 +35,20 @@ namespace Karayote.Models
         internal KarayoteUser(BotifexUser botifexUser)
         {
             Id = botifexUser.Guid; // for now
+            botUser = botifexUser;
             Name = botifexUser.UserName;
             reservedSongs = new List<SelectedSong>();
+        }
+
+        /// <summary>
+        /// Construct a <see cref="KarayoteUser"/> without tying it to a botifex account. For admin-controlled dummy users.
+        /// </summary>
+        /// <param name="name">The <see cref="string"/> text of a username</param>
+        internal KarayoteUser(string name)
+        {
+            reservedSongs = new List<SelectedSong>();
+            Id = Guid.NewGuid();
+            Name = name;
         }
 
         /// <summary>
