@@ -74,7 +74,7 @@ namespace Karayote
             });
             botifex.AddCommand(new SlashCommand(adminOnly: true) 
             {
-                Name="opensession",
+                Name="openqueue",
                 Description = "Open the session for searching and queueing"
             });
             if(cfg.GetValue<bool>("AllowGetID"))
@@ -151,6 +151,16 @@ namespace Karayote
                 Name = "nextsong",
                 Description = "Move to the next song"
             });
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
+            {
+                Name = "closequeue",
+                Description = "Disallow any more queueing"
+            });
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
+            {
+                Name = "endsession",
+                Description = "Shut down the singing completely"
+            });
 
             // register handlers for different messenger input types
             botifex.RegisterTextHandler(ProcessText);
@@ -197,7 +207,7 @@ namespace Karayote
             {
                 // searching Karafun for a specific song
                 case "search":
-                    if (currentSession.IsOpen)
+                    if (currentSession.IsOpen || currentSession.IsStarted)
                     {
                         await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}"); // let user know we're doing things
                         karafun.Search(new Action<List<Song>>(async (List<Song> foundSongs) =>
@@ -254,7 +264,7 @@ namespace Karayote
                     break;
 
                 // open the session to searching and queueing
-                case "opensession":
+                case "openqueue":
                     if(currentSession.IsOpen)
                     {
                         await interaction.Reply("The session is already open silly");
@@ -263,6 +273,12 @@ namespace Karayote
                     else if (karafun.Status is null)
                     {
                         await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");
+                    }
+                    // reopen the session
+                    else if (currentSession.IsStarted)
+                    {
+                        currentSession.Reopen();
+                        await interaction.Reply("Reopened the queue to submissions");
                     }
                     // open the session
                     else
@@ -412,7 +428,7 @@ namespace Karayote
                                "/mysongs will show you what you've selected and /seequeue will show you what the queue is looking like\n\n" +
                                "After you look at /mysongs for the order your songs are in, you can use /switchsongs to change their order or /removesong to get rid of one\n\n" +
                                "When the singing starts, you'll get a DM from the bot when the person before you starts singing. Don't miss your turn!";
-                    await e.Interaction.Reply(response);
+                    await interaction.Reply(response);
                     await interaction.End();
                     break;
 
@@ -425,7 +441,7 @@ namespace Karayote
                         await SendSingerNotifications();
                         response = "The queue is now flowing!";                    
                     }
-                    await e.Interaction.Reply(response);
+                    await interaction.Reply(response);
                     await interaction.End();
                     break;
 
@@ -439,7 +455,19 @@ namespace Karayote
                         await SendSingerNotifications();            // notify next 2 singers
                         response = "Done!";
                     }
-                    await e.Interaction.Reply(response);
+                    await interaction.Reply(response);
+                    await interaction.End();
+                    break;
+
+                case "closequeue":
+                    currentSession.Close();
+                    await interaction.Reply("Queue closed to new additions");
+                    await interaction.End();
+                    break;
+
+                case "endsession":
+                    currentSession.End();
+                    await interaction.Reply("Session closed. Have a good night!");
                     await interaction.End();
                     break;
 
@@ -629,7 +657,16 @@ namespace Karayote
             switch (currentSession.GetInLine(song))
             {
                 case Session.SongAddResult.SuccessInQueue:
-                    response = $"Added {song.Title} to the queue at position {currentSession.SongQueue.Count}";
+                    int position = currentSession.SongQueue.Count;
+                    response = $"Added {song.Title} to the queue at position {position}";
+                    if(position == 1)
+                    {
+                        response += "\n\n" + (currentSession.IsStarted ? "It's your turn right now! Come on up to the stage!" : "You will be up first! Don't go anywhere");
+                    } 
+                    else if (position == 2)
+                    {
+                        response += "\n\n" + (currentSession.IsStarted ? "You are up after this person finishes singing! Don't go anywhere" : "You will be up second! Don't go anywhere");
+                    }
                     KarayoteStatusUpdate(karafun.Status).Wait();
                     break;
                 case Session.SongAddResult.SuccessInReserve:

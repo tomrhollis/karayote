@@ -26,7 +26,7 @@ namespace Karayote
         /// <summary>
         /// Whether the queue is actually open for additions right now
         /// </summary>
-        public bool IsOpen { get => (OpenTime is not null && DateTime.Now > OpenTime) && (EndTime is null || DateTime.Now < EndTime) && !QueueFull; }
+        public bool IsOpen { get => (OpenTime is not null && DateTime.Now > OpenTime) && (EndTime is null || DateTime.Now < EndTime) && !QueueFull && !queueClosed; }
 
         /// <summary>
         /// Whether the queue is flowing
@@ -48,6 +48,7 @@ namespace Karayote
         /// </summary>
         public SongQueue SongQueue { get; private set; } = new SongQueue();
 
+        private bool queueClosed = false;
         private List<SelectedSong> selectedSongs = new List<SelectedSong>(); // songs that were selected tonight and still in waiting, or were successfully sung
         private bool noRepeats = true; // plaeholder for a potential future settings option.
                                        // Until then it's not allowed for multiple people to sing the same song in a session
@@ -233,7 +234,7 @@ namespace Karayote
         /// </summary>
         internal void Close()
         {
-            // for closing off the queue, but may be undone now and then
+            queueClosed = true;
         }
 
         /// <summary>
@@ -241,7 +242,7 @@ namespace Karayote
         /// </summary>
         internal void Reopen()
         {
-            // unsure if this will be used yet
+            queueClosed = false;
         }
 
         /// <summary>
