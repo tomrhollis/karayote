@@ -435,9 +435,9 @@ namespace Karayote
                     response = "We're not singing right now";
                     if (!currentSession.IsStarted && !currentSession.IsOver) // only if the queue is moving right now
                     {
-                        currentSession.NextSong();
-                        await KarayoteStatusUpdate(karafun.Status);
-                        await SendSingerNotifications();
+                        currentSession.NextSong();                  // advance queue
+                        await KarayoteStatusUpdate(karafun.Status); // update status posts
+                        await SendSingerNotifications();            // notify next 2 singers
                         response = "Done!";
                     }
                     await e.Interaction.Reply(response);
@@ -541,10 +541,10 @@ namespace Karayote
         private async Task SendSingerNotifications()
         {
             if (currentSession.SongQueue.NowPlaying is null) return; // if there's no current song, there's nothing to do here
-            await botifex.SendToUser(currentSession.SongQueue.NowPlaying.User.BotUser, $"It's now your turn to sing {currentSession.SongQueue.NowPlaying.Title}! Come on up to the stage!");
+            await botifex.SendToUser(currentSession.SongQueue.NowPlaying.User.BotUser!, $"It's now your turn to sing {currentSession.SongQueue.NowPlaying.Title}! Come on up to the stage!");
             
             if (currentSession.SongQueue.NextUp is null) return; // if there's no next song, there's nothing left to do here
-            await botifex.SendToUser(currentSession.SongQueue.NextUp.User.BotUser, $"You'll be up next to sing {currentSession.SongQueue.NextUp.Title} after {currentSession.SongQueue.NowPlaying.User.Name} sings {currentSession.SongQueue.NowPlaying.Title}. Don't go too far!");
+            await botifex.SendToUser(currentSession.SongQueue.NextUp.User.BotUser!, $"You'll be up next to sing {currentSession.SongQueue.NextUp.Title} after {currentSession.SongQueue.NowPlaying.User.Name} sings {currentSession.SongQueue.NowPlaying.Title}. Don't go too far!");
         }
 
         /// <summary>
