@@ -318,14 +318,12 @@ namespace Karayote
                     {
                         response = $"That's either a stream or less than a minute long. Nice try!";
                     }
-                    catch(ArgumentOutOfRangeException arx)
+                    catch(ArgumentOutOfRangeException)
                     {
-                        log.LogWarning($"[{DateTime.Now}] User {user.Name} caused exception while requesting a youtube video {interaction.CommandFields["video"]}: {arx.GetType()} - {arx.Message}");
                         response = "Couldn't find a YouTube video with that ID";
                     }
-                    catch (ArgumentException ax)
+                    catch (ArgumentException)
                     {
-                        log.LogWarning($"[{DateTime.Now}] User {user.Name} caused exception while requesting a youtube video {interaction.CommandFields["video"]}: {ax.GetType()} - {ax.Message}");
                         response = "Couldn't find a YouTube video link or ID in what you entered. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
                     }                    
                     await interaction.Reply(response);
@@ -423,7 +421,7 @@ namespace Karayote
                     if (!currentSession.IsStarted && !currentSession.IsOver) // make sure this hasn't already been done
                     {
                         currentSession.Start();
-                        await botifex.SendOneTimeStatusUpdate("And the singing starts.... NOW!");
+                        await botifex.ReplaceStatusMessage("And the singing starts.... NOW!");
                         await SendSingerNotifications();
                         response = "The queue is now flowing!";                    
                     }
@@ -433,8 +431,9 @@ namespace Karayote
 
                 case "nextsong":
                     response = "We're not singing right now";
-                    if (!currentSession.IsStarted && !currentSession.IsOver) // only if the queue is moving right now
+                    if (currentSession.IsStarted && !currentSession.IsOver && currentSession.SongQueue.Count > 0) // only if the queue is moving right now
                     {
+                        await botifex.ReplaceStatusMessage($"{currentSession.SongQueue.NowPlaying!.User.Name} just sang {currentSession.SongQueue.NowPlaying.Title}");
                         currentSession.NextSong();                  // advance queue
                         await KarayoteStatusUpdate(karafun.Status); // update status posts
                         await SendSingerNotifications();            // notify next 2 singers
@@ -640,7 +639,7 @@ namespace Karayote
                     response = $"Couldn't add {song.Title}, you've already selected 3 songs. You can delete one or select a new one after you sing next";
                     break;
                 case Session.SongAddResult.AlreadySelected:
-                    response = $"Couldn't add {song.Title}, someone else already picked that today";
+                    response = $"Couldn't add {song.Title}, someone already picked that one today";
                     break;
                 case Session.SongAddResult.QueueClosed:
                     response = $"Couldn't add {song.Title}, the queue is closed right now";
