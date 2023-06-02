@@ -98,6 +98,7 @@ namespace Karayote
             }
 
             SongQueue.AddSong(song);
+            selectedSongs.Add(song);
             return SongAddResult.SuccessInQueue;
         }
 
@@ -151,7 +152,7 @@ namespace Karayote
             if (earlierSongPosition == 1)
             {
                 // get the later song in the user's reserve that will be replaced
-                SelectedSong? songFromReserve = user.GetSelectedSong(position2 - 2);
+                SelectedSong? songFromReserve = user.GetSelectedSong(laterSongPosition - 2);
                 
                 // failed to find the reserve song
                 if (songFromReserve is null)
@@ -163,7 +164,7 @@ namespace Karayote
                 if (songFromQueue is null)
                     return false;
 
-                SelectedSong? replacedSong = user.ReplaceReservedSong(position2 - 2, songFromQueue);
+                SelectedSong? replacedSong = user.ReplaceReservedSong(laterSongPosition - 2, songFromQueue);
                 // if replacing the reserve song didn't work, revert the change to the queue
                 if (replacedSong is null)
                 {
@@ -175,7 +176,7 @@ namespace Karayote
 
             // when both positions are in the user's reserve
             else
-                return user.SwitchReservedSongs(position1 - 2, position2 - 2);
+                return user.SwitchReservedSongs(earlierSongPosition - 2, laterSongPosition - 2);
         }
 
         /// <summary>
@@ -210,12 +211,20 @@ namespace Karayote
         /// Move to the next song in the queue
         /// </summary>
         internal void NextSong()
-        {
-            SelectedSong? previousSong = SongQueue.Pop();
-            if(previousSong is not null)
+        {            
+            if(SongQueue.NowPlaying is not null)
             {
-                int index = selectedSongs.FindIndex(s=>s.Id == previousSong.Id);
-                selectedSongs[index].SetSungTime();
+                // set the song's completion time in the history
+                int index = selectedSongs.IndexOf(SongQueue.NowPlaying);
+                selectedSongs[index].SetSungTime();                
+
+                // remove song from the queue 
+                SongQueue.Pop();
+
+                // shift in any reserve song and remove it from their reserve
+                SelectedSong? reservedSong = selectedSongs[index].User.RemoveReservedSong(0);
+                if(reservedSong is not null)
+                    SongQueue.AddSong(reservedSong);
             }
         }
 

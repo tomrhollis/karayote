@@ -157,10 +157,15 @@ namespace Karayote
             if (songQueue.Count > 0)
             {
                 int i = 1;
-                foreach (var song in songQueue)
+                lock (_lock)
                 {
-                    queue += $"{i}] {song}\n";
-                    i++;
+                    string position = "Now";
+                    foreach (var song in songQueue)
+                    {
+                        queue += $"{position}] {song}\n";
+                        i++;
+                        position = (i == 2 ? "Next" : i.ToString());
+                    }
                 }
             }
             else

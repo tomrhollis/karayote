@@ -146,6 +146,11 @@ namespace Karayote
                 Name = "startsession",
                 Description = "Start the first song"
             });
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
+            {
+                Name = "nextsong",
+                Description = "Move to the next song"
+            });
 
             // register handlers for different messenger input types
             botifex.RegisterTextHandler(ProcessText);
@@ -323,15 +328,15 @@ namespace Karayote
                         log.LogWarning($"[{DateTime.Now}] User {user.Name} caused exception while requesting a youtube video {interaction.CommandFields["video"]}: {ax.GetType()} - {ax.Message}");
                         response = "Couldn't find a YouTube video link or ID in what you entered. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
                     }                    
-                    await e.Interaction.Reply(response);
-                    await e.Interaction.End();
+                    await interaction.Reply(response);
+                    await interaction.End();
                     break;
 
                 // retrieve a list of a user's queued and reserved songs for this sesssion
                 case "mysongs":
                     response = GetMySongs(user);
 
-                    await e.Interaction.Reply(response);
+                    await interaction.Reply(response);
                     await interaction.End();
                     break;
 
@@ -366,7 +371,7 @@ namespace Karayote
                     {
                         response = "Well I wasn't expecting that";
                     }
-                    await e.Interaction.Reply(response);
+                    await interaction.Reply(response);
                     await interaction.End();
                     break;
 
@@ -398,7 +403,7 @@ namespace Karayote
                         response = "One or both of those wasn't even close to being the number of a song!";
                     }
 
-                    await e.Interaction.Reply(response);
+                    await interaction.Reply(response);
                     await interaction.End();
                     break;
 
@@ -419,11 +424,25 @@ namespace Karayote
                     {
                         currentSession.Start();
                         await botifex.SendOneTimeStatusUpdate("And the singing starts.... NOW!");
+                        await SendSingerNotifications();
                         response = "The queue is now flowing!";                    
                     }
                     await e.Interaction.Reply(response);
                     await interaction.End();
-                    break;                    
+                    break;
+
+                case "nextsong":
+                    response = "We're not singing right now";
+                    if (!currentSession.IsStarted && !currentSession.IsOver) // only if the queue is moving right now
+                    {
+                        currentSession.NextSong();
+                        await KarayoteStatusUpdate(karafun.Status);
+                        await SendSingerNotifications();
+                        response = "Done!";
+                    }
+                    await e.Interaction.Reply(response);
+                    await interaction.End();
+                    break;
 
                 default:
                     break;
@@ -458,7 +477,7 @@ namespace Karayote
             List<SelectedSong>? history = currentSession.GetUserHistory(user);
             if(history is not null)
             {
-                response += "\nPreviously sung songs:";
+                response += "\n\nPreviously sung today:";
                 foreach (var item in history)
                 {
                     response += "\n" + item.ToString();
@@ -513,6 +532,19 @@ namespace Karayote
             {
                 await interaction.Reply($"The queue has closed for now, but I have not been programmed to know why in this case");
             }            
+        }
+
+        /// <summary>
+        /// Notify the current and next singers
+        /// </summary>
+        /// <returns><see cref="Task.CompletedTask"/></returns>
+        private async Task SendSingerNotifications()
+        {
+            if (currentSession.SongQueue.NowPlaying is null) return; // if there's no current song, there's nothing to do here
+            await botifex.SendToUser(currentSession.SongQueue.NowPlaying.User.BotUser, $"It's now your turn to sing {currentSession.SongQueue.NowPlaying.Title}! Come on up to the stage!");
+            
+            if (currentSession.SongQueue.NextUp is null) return; // if there's no next song, there's nothing left to do here
+            await botifex.SendToUser(currentSession.SongQueue.NextUp.User.BotUser, $"You'll be up next to sing {currentSession.SongQueue.NextUp.Title} after {currentSession.SongQueue.NowPlaying.User.Name} sings {currentSession.SongQueue.NowPlaying.Title}. Don't go too far!");
         }
 
         /// <summary>
