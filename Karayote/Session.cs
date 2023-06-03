@@ -44,11 +44,17 @@ namespace Karayote
         public bool QueueFull { get => false; } // placeholder until actual time-summing logic exists for the queue
 
         /// <summary>
+        /// Check if there's a waiting list or not
+        /// </summary>
+        public bool HasWaitingList { get => waitingList.Count > 0; }
+
+        /// <summary>
         /// The <see cref="Karayote.SongQueue"/> holding the songs waiting to be sung at this event
         /// </summary>
         public SongQueue SongQueue { get; private set; } = new SongQueue();
 
-        private bool queueClosed = false;
+        private List<KarayoteUser> waitingList = new List<KarayoteUser>();
+        private bool queueClosed = false; // for closing the queue temporarily after the event starts
         private List<SelectedSong> selectedSongs = new List<SelectedSong>(); // songs that were selected tonight and still in waiting, or were successfully sung
         private bool noRepeats = true; // plaeholder for a potential future settings option.
                                        // Until then it's not allowed for multiple people to sing the same song in a session
@@ -82,14 +88,19 @@ namespace Karayote
         /// <returns>The <see cref="SongAddResult"/> describing the outcome of this request</returns>
         internal SongAddResult GetInLine(SelectedSong song)
         {
-            if (!IsOpen) return SongAddResult.QueueClosed;
+            if (!IsStarted) return SongAddResult.QueueClosed;
 
             // eventually check first if other users have that song reserved or sung already
             if (noRepeats && selectedSongs.FirstOrDefault(s=>s.Id == song.Id) is not null)
                 return SongAddResult.AlreadySelected;
 
-            if (SongQueue.HasUser(song.User))
+            if (SongQueue.HasUser(song.User) || !IsOpen)
             {
+                // add to the waiting list if they're not on there yet
+                if (!IsOpen && !waitingList.Contains(song.User))
+                {
+                    waitingList.Add(song.User);
+                }
                 if (song.User.AddReservedSong(song))
                 {
                     selectedSongs.Add(song);
@@ -227,6 +238,22 @@ namespace Karayote
                 if(reservedSong is not null)
                     SongQueue.AddSong(reservedSong);
             }
+        }
+
+        /// <summary>
+        /// Add a song from the first user in the waiting list
+        /// </summary>
+        /// <returns>The user who ended up added to the queue, or <see cref="null"/> if it didn't work</returns>
+        internal KarayoteUser? AddFromWaitingList()
+        {
+            KarayoteUser user = waitingList[0];
+            if (user.GetReservedSongs().Count > 0)
+                SongQueue.AddSong(user.RemoveReservedSong(0)!);
+            else
+                user = null;
+
+            waitingList.RemoveAt(0);
+            return user;
         }
 
         /// <summary>
