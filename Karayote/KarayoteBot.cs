@@ -161,6 +161,11 @@ namespace Karayote
                 Name = "endsession",
                 Description = "Shut down the singing completely"
             });
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
+            {
+                Name = "usewaitinglist",
+                Description = "Add a song from the waiting list"
+            });
 
             // register handlers for different messenger input types
             botifex.RegisterTextHandler(ProcessText);
@@ -207,7 +212,7 @@ namespace Karayote
             {
                 // searching Karafun for a specific song
                 case "search":
-                    if (currentSession.IsOpen || currentSession.IsStarted)
+                    if (currentSession.IsOpen)
                     {
                         await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}"); // let user know we're doing things
                         karafun.Search(new Action<List<Song>>(async (List<Song> foundSongs) =>
@@ -241,7 +246,7 @@ namespace Karayote
 
                 // see the current song queue if the session is open
                 case "seequeue":
-                    if(currentSession.IsOpen)
+                    if(currentSession.IsOpen || currentSession.IsStarted)
                     {
                         await interaction.Reply(currentSession.SongQueue.ToString());
                     }
@@ -265,21 +270,22 @@ namespace Karayote
 
                 // open the session to searching and queueing
                 case "openqueue":
-                    if(currentSession.IsOpen)
+                    if(currentSession.IsOpen || currentSession.IsStarted) // remove isstarted when all the proper checks are in place for reopening
                     {
-                        await interaction.Reply("The session is already open silly");
+                        await interaction.Reply("You already did that silly");
                     }
                     // karafun must be operational to open a session
                     else if (karafun.Status is null)
                     {
                         await interaction.Reply("Can't open the session, Karafun isn't speaking to us right now.");
                     }
-                    // reopen the session
-                    else if (currentSession.IsStarted)
+                    // reopen the session 
+                    // not available until all the proper checks are in place for restarting from a closed state
+                    /*else if (currentSession.IsStarted)
                     {
                         currentSession.Reopen();
                         await interaction.Reply("Reopened the queue to submissions");
-                    }
+                    }*/
                     // open the session
                     else
                     {
@@ -468,6 +474,28 @@ namespace Karayote
                 case "endsession":
                     currentSession.End();
                     await interaction.Reply("Session closed. Have a good night!");
+                    await botifex.SendOneTimeStatusUpdate("Karayote is done for the night. Thanks for coming!\n\n");
+                    await interaction.End();
+                    break;
+
+                case "usewaitinglist":
+                    response = "There isn't a waiting list right now";
+                    if (!currentSession.IsOpen && currentSession.HasWaitingList) // check if this command is even relevant. If the queue is still open or the list is empty, nothing to do.
+                    { 
+                        KarayoteUser? addedUser = currentSession.AddFromWaitingList();
+                        
+                        // keep grabbing from the waiting list until one of them still has a song in reserve                        
+                        while (addedUser is null && currentSession.HasWaitingList)
+                            addedUser = currentSession.AddFromWaitingList();
+
+                        // this could be null in the rare possibility that everyone on the waiting list deletes their reserved songs
+                        if (addedUser is not null)
+                        {
+                            SelectedSong song = user.GetSelectedSong(0);
+                            response = "";
+                        }                        
+                    }
+                    await interaction.Reply(response);
                     await interaction.End();
                     break;
 
