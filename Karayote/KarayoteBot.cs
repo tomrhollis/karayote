@@ -477,9 +477,9 @@ namespace Karayote
                     await botifex.SendOneTimeStatusUpdate("Karayote is done for the night. Thanks for coming!\n\n");
                     await interaction.End();
                     break;
-
+                    
                 case "usewaitinglist":
-                    response = "There isn't a waiting list right now";
+                    response = "There isn't a waiting list right now";/*
                     if (!currentSession.IsOpen && currentSession.HasWaitingList) // check if this command is even relevant. If the queue is still open or the list is empty, nothing to do.
                     { 
                         KarayoteUser? addedUser = currentSession.AddFromWaitingList();
@@ -494,7 +494,7 @@ namespace Karayote
                             SelectedSong song = user.GetSelectedSong(0);
                             response = "";
                         }                        
-                    }
+                    }*/
                     await interaction.Reply(response);
                     await interaction.End();
                     break;

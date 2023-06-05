@@ -246,7 +246,7 @@ namespace Karayote
         /// <returns>The user who ended up added to the queue, or <see cref="null"/> if it didn't work</returns>
         internal KarayoteUser? AddFromWaitingList()
         {
-            KarayoteUser user = waitingList[0];
+            KarayoteUser? user = waitingList[0];
             if (user.GetReservedSongs().Count > 0)
                 SongQueue.AddSong(user.RemoveReservedSong(0)!);
             else
