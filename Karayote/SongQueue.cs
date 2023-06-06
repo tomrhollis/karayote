@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Karayote.Models;
 
-namespace Karayote.Models
+namespace Karayote
 {
     /// <summary>
     /// Provides a queue of <see cref="SelectedSong" />s in a form that objects can be easily swapped out or removed from the middle as needed />
@@ -80,7 +78,7 @@ namespace Karayote.Models
         /// </summary>
         /// <param name="user">The <see cref="KarayoteUser"/> who may have a song in the queue</param>
         /// <returns>A <see cref="Tuple"/> of <see cref="SelectedSong"/> and <see cref="int"/> if a song is found, null otherwise</returns>
-        internal Tuple<SelectedSong, int>? GetUserSongWithPosition(KarayoteUser user)
+        internal Tuple<SelectedSong,int>? GetUserSongWithPosition(KarayoteUser user)
         {
             lock (_lock)
             {
@@ -89,7 +87,7 @@ namespace Karayote.Models
 
                 int position = songQueue.IndexOf(selectedSong) + 1;
                 return new Tuple<SelectedSong, int>(selectedSong, position);
-            }
+            }            
         }
 
         /// <summary>
@@ -118,7 +116,7 @@ namespace Karayote.Models
         internal SelectedSong? ReplaceUserSong(KarayoteUser user, SelectedSong newSong)
         {
             SelectedSong? removedSong = null;
-            lock (_lock)
+            lock(_lock)
             {
                 try
                 {
@@ -144,7 +142,7 @@ namespace Karayote.Models
                 SelectedSong song = songQueue.First();
                 songQueue.RemoveAt(0);
                 return song;
-            }
+            }            
         }
 
 
@@ -166,7 +164,7 @@ namespace Karayote.Models
                     {
                         queue += $"{position}] {song}\n";
                         i++;
-                        position = i == 2 ? "Next" : i.ToString();
+                        position = (i == 2 ? "Next" : i.ToString());
                     }
                 }
             }

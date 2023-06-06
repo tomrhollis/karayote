@@ -1,6 +1,4 @@
 ﻿using Botifex.Models;
-using System;
-using System.Collections.Generic;
 
 namespace Karayote.Models
 {

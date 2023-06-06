@@ -1,6 +1,4 @@
 ﻿
-using System;
-
 namespace Karayote.Models
 {
     /// <summary>
