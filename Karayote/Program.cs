@@ -1,18 +1,14 @@
-﻿///
-/// Karayote - Karaoke event management app
-/// (c) 2023
-///
-
-using Botifex;
 using KarafunAPI;
 using Karayote;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Botifex;
 
-await Host.CreateDefaultBuilder(args)
-    .ConfigureAppConfiguration((ctx, cfg) =>
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllersWithViews();
+
+builder.WebHost.ConfigureAppConfiguration((ctx, cfg) =>
     {
         cfg.SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) // non-sensitive settings
@@ -27,10 +23,30 @@ await Host.CreateDefaultBuilder(args)
     {
         services.AddMyClasses() // messaging bots
                 .AddSingleton<IKarafun, Karafun>() // karafun API
-                .AddHostedService<KarayoteBot>(); // the controller
+                .AddHostedService<KarayoteBot>(); // the brains of the operation
 
-             // .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")));
-             // .AddScoped(typeof(IRepository<>), typeof(Repository<>));
-    })
-    .UseConsoleLifetime()
-    .RunConsoleAsync();
+        // .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")));
+        // .AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    });
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller}/{action=Index}/{id?}");
+
+app.MapFallbackToFile("index.html"); ;
+
+app.Run();
