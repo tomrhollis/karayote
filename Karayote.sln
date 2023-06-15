@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KarafunAPI", "Karafun\Karaf
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Botifex", "..\Botifex\Botifex.csproj", "{804EEADE-814B-493F-A831-D770FA4F6BD6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Karayote", "Karayote\Karayote.csproj", "{066FED2A-AEB5-4E9D-AFF0-1D4142BB4935}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Karayote", "Karayote\Karayote.csproj", "{47A6F7D6-737D-43F0-9CCD-CE67E9E6D47A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +15,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87A6E605-0E4F-4FFF-A26F-42BE76E03ACC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5A03167E-24CB-4D6A-AD2A-5024A9A630F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5A03167E-24CB-4D6A-AD2A-5024A9A630F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A03167E-24CB-4D6A-AD2A-5024A9A630F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -23,10 +27,10 @@ Global
 		{804EEADE-814B-493F-A831-D770FA4F6BD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{804EEADE-814B-493F-A831-D770FA4F6BD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{804EEADE-814B-493F-A831-D770FA4F6BD6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{066FED2A-AEB5-4E9D-AFF0-1D4142BB4935}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{066FED2A-AEB5-4E9D-AFF0-1D4142BB4935}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{066FED2A-AEB5-4E9D-AFF0-1D4142BB4935}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{066FED2A-AEB5-4E9D-AFF0-1D4142BB4935}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47A6F7D6-737D-43F0-9CCD-CE67E9E6D47A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47A6F7D6-737D-43F0-9CCD-CE67E9E6D47A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47A6F7D6-737D-43F0-9CCD-CE67E9E6D47A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47A6F7D6-737D-43F0-9CCD-CE67E9E6D47A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

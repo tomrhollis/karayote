@@ -1,6 +1,4 @@
-﻿using Karayote.Models;
-
-namespace Karayote
+﻿namespace Karayote.Models
 {
     /// <summary>
     /// Provides a queue of <see cref="SelectedSong" />s in a form that objects can be easily swapped out or removed from the middle as needed />

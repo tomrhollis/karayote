@@ -1,7 +1,4 @@
-﻿
-using Karayote.Models;
-
-namespace Karayote
+﻿namespace Karayote.Models
 {
     /// <summary>
     /// A representation of the scheduled karaoke session for the night, tracking its information and state
