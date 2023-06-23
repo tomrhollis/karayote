@@ -1,4 +1,5 @@
 ﻿using Google.Apis.YouTube.v3.Data;
+using System;
 using System.Text.RegularExpressions;
 
 namespace Karayote.Models
@@ -14,12 +15,12 @@ namespace Karayote.Models
         /// <summary>
         /// Return the 11-character YouTube video ID
         /// </summary>
-        internal override string Id { get=>id; }
+        public override string Id { get=>id; }
 
         /// <summary>
         /// Get the title of the Youtube video as it would display under the video on the actual site
         /// </summary>
-        internal override string Title { get => (Video is null) ? $"YouTube video with ID {Id}" : Video.Snippet.Title; }
+        public override string Title { get => (Video is null) ? $"YouTube video with ID {Id}" : Video.Snippet.Title; }
 
         /// <summary>
         /// Constructor for a new <see cref="YoutubeSong"/> based on an ID string

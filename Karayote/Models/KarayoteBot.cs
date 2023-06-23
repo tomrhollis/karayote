@@ -3,27 +3,33 @@ using Botifex.Services;
 using KarafunAPI;
 using KarafunAPI.Models;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Karayote.Models;
 using Botifex.Models;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Linq;
+using Microsoft.Extensions.Hosting;
+using Karayote.Views;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Karayote
+namespace Karayote.Models
 {
     /// <summary>
     /// Hosted service to route information between the users on messaging apps and the different sources of karaoke songs
     /// </summary>
-    internal class KarayoteBot : IHostedService
+    public class KarayoteBot : IHostedService, IKarayoteBot
     {
         private ILogger<KarayoteBot> log;
         private IBotifex botifex;
         private IKarafun karafun;
         private YouTubeService youtube;
-        internal Session currentSession = new Session();
+        internal Session currentSession;
         private List<KarayoteUser> knownUsers = new List<KarayoteUser>();
         private HashSet<Song> knownSongs = new HashSet<Song>();
 
@@ -34,7 +40,8 @@ namespace Karayote
         /// <param name="cfg">The injected <see cref="IConfiguration"/> holding the user defined settings and bot keys</param>
         /// <param name="karApi">The injected <see cref="IKarafun"/> to talk to a running Karafun server</param>
         /// <param name="botifex">The injected <see cref="IBotifex"/> library allowing input from and responses to multiple messaging apps</param>
-        public KarayoteBot(ILogger<KarayoteBot> log, IConfiguration cfg, IKarafun karApi, Botifex.IBotifex botifex)
+        /// <param name="host">The injected <see cref="IHost"/> interface for interacting with the host</param>
+        public KarayoteBot(ILogger<KarayoteBot> log, IConfiguration cfg, IKarafun karApi, IBotifex botifex, IHost host)
         {
             this.log = log;
             this.botifex = botifex;
@@ -43,9 +50,9 @@ namespace Karayote
             youtube = new YouTubeService(new BaseClientService.Initializer()
             {
                 ApplicationName = cfg.GetSection("Youtube").GetValue<string>("GoogleAPIAppName"),
-                ApiKey = cfg.GetSection("Youtube").GetValue<string>("YoutubeAPIKey")                
+                ApiKey = cfg.GetSection("Youtube").GetValue<string>("YoutubeAPIKey")
             });
-            
+
             // Create all the commands the messaging apps need to interact with Karayote
             // See processing in ProcessCommand for more info on each
             botifex.AddCommand(new SlashCommand()
@@ -72,15 +79,15 @@ namespace Karayote
                 Name = "karafunlink",
                 Description = "Get a link to the online karafun catalog anytime"
             });
-            botifex.AddCommand(new SlashCommand(adminOnly: true) 
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
             {
-                Name="openqueue",
+                Name = "openqueue",
                 Description = "Open the session for searching and queueing"
             });
-            if(cfg.GetValue<bool>("AllowGetID"))
+            if (cfg.GetValue<bool>("AllowGetID"))
                 botifex.AddCommand(new SlashCommand(adminOnly: true)
                 {
-                    Name="getid",
+                    Name = "getid",
                     Description = "Show the id digits for this channel"
                 });
             botifex.AddCommand(new SlashCommand()
@@ -170,6 +177,11 @@ namespace Karayote
             // register handlers for different messenger input types
             botifex.RegisterTextHandler(ProcessText);
             botifex.RegisterCommandHandler(ProcessCommand);
+
+            log.LogDebug("Karayote Constructor ran");
+            currentSession = host.Services.GetRequiredService<Session>();
+            /*window = host.Services.GetRequiredService<MainWindow>();
+            window.Show();*/
         }
 
         /// <summary>
@@ -202,7 +214,7 @@ namespace Karayote
         /// <param name="sender">The sender of the event, most likely <see cref="Botifex.Botifex"/></param>
         /// <param name="e"><see cref="InteractionReceivedEventArgs"/> containing the <see cref="Interaction"/> with the user</param>
         private async void ProcessCommand(object? sender, InteractionReceivedEventArgs e)
-        {            
+        {
             KarayoteUser user = CreateOrFindUser(e.Interaction.User!); // make sure we keep track of which user this is
             ICommandInteraction interaction = (ICommandInteraction)e.Interaction;
 #if DEBUG
@@ -215,7 +227,7 @@ namespace Karayote
                     if (currentSession.IsOpen)
                     {
                         await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}"); // let user know we're doing things
-                        karafun.Search(new Action<List<Song>>(async (List<Song> foundSongs) =>
+                        karafun.Search(new Action<List<Song>>(async (foundSongs) =>
                         {
                             if (foundSongs is null || foundSongs.Count == 0)
                             {
@@ -241,12 +253,12 @@ namespace Karayote
                     {
                         await NoSessionReply(interaction);
                         await interaction.End();
-                    }                                       
+                    }
                     break;
 
                 // see the current song queue if the session is open
                 case "seequeue":
-                    if(currentSession.IsOpen || currentSession.IsStarted)
+                    if (currentSession.IsOpen || currentSession.IsStarted)
                     {
                         await interaction.Reply(currentSession.SongQueue.ToString());
                     }
@@ -270,7 +282,7 @@ namespace Karayote
 
                 // open the session to searching and queueing
                 case "openqueue":
-                    if(currentSession.IsOpen || currentSession.IsStarted) // remove isstarted when all the proper checks are in place for reopening
+                    if (currentSession.IsOpen || currentSession.IsStarted) // remove isstarted when all the proper checks are in place for reopening
                     {
                         await interaction.Reply("You already did that silly");
                     }
@@ -304,7 +316,7 @@ namespace Karayote
                         await NoSessionReply(interaction);
                         break;
                     }
-                 
+
                     Uri? youtubeLink = null;
                     YoutubeSong? song = null;
                     string response = "";
@@ -321,7 +333,7 @@ namespace Karayote
                         VideosResource.ListRequest listRequest = youtube.Videos.List("snippet,contentDetails");
                         listRequest.Id = song.Id;
                         VideoListResponse ytVideos = listRequest.Execute();
-                        
+
                         // make sure it's a reasonable length
                         int durationMins = int.Parse(Regex.Match(ytVideos.Items[0].ContentDetails.Duration.Split("M")[0], "[\\d]{1,2}$").Value); // exception if less than a min
                         log.LogDebug(durationMins.ToString());
@@ -330,24 +342,24 @@ namespace Karayote
                             song.Video = ytVideos.Items[0];
                             log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
 
-                            TryAddSong(song, ref response);
+                            response = await TryAddSong(song);
                             response += "\n\n" + GetMySongs(user);
                         }
                         else
                             response = $"No can do, a Youtube video has to be less than 10 minutes long.";
                     }
-                    catch(FormatException)
+                    catch (FormatException)
                     {
                         response = $"That's either a stream or less than a minute long. Nice try!";
                     }
-                    catch(ArgumentOutOfRangeException)
+                    catch (ArgumentOutOfRangeException)
                     {
                         response = "Couldn't find a YouTube video with that ID";
                     }
                     catch (ArgumentException)
                     {
                         response = "Couldn't find a YouTube video link or ID in what you entered. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
-                    }                    
+                    }
                     await interaction.Reply(response);
                     await interaction.End();
                     break;
@@ -387,7 +399,7 @@ namespace Karayote
                         else
                             response = DeleteSong(user, position) + "\n\n" + GetMySongs(user);
                     }
-                    catch(Exception ex) when (ex is ArgumentNullException or FormatException or OverflowException)
+                    catch (Exception ex) when (ex is ArgumentNullException or FormatException or OverflowException)
                     {
                         response = "Well I wasn't expecting that";
                     }
@@ -413,7 +425,7 @@ namespace Karayote
                             if (success)
                             {
                                 response = "Done!\n\n" + GetMySongs(user);
-                                if(Math.Min(position1, position2) == 1) // trigger a status update if one of the queued songs changed
+                                if (Math.Min(position1, position2) == 1) // trigger a status update if one of the queued songs changed
                                     await KarayoteStatusUpdate(karafun.Status);
                             }
                         }
@@ -445,7 +457,7 @@ namespace Karayote
                         currentSession.Start();
                         await botifex.ReplaceStatusMessage("And the singing starts.... NOW!");
                         await SendSingerNotifications();
-                        response = "The queue is now flowing!";                    
+                        response = "The queue is now flowing!";
                     }
                     await interaction.Reply(response);
                     await interaction.End();
@@ -477,7 +489,7 @@ namespace Karayote
                     await botifex.SendOneTimeStatusUpdate("Karayote is done for the night. Thanks for coming!\n\n");
                     await interaction.End();
                     break;
-                    
+
                 case "usewaitinglist":
                     response = "There isn't a waiting list right now";/*
                     if (!currentSession.IsOpen && currentSession.HasWaitingList) // check if this command is even relevant. If the queue is still open or the list is empty, nothing to do.
@@ -513,7 +525,7 @@ namespace Karayote
         {
             string response = "You have no songs in the queue or reserve";
             Tuple<SelectedSong, int>? songAtPosition = currentSession.SongQueue.GetUserSongWithPosition(user);
-            
+
             if (songAtPosition is not null)
             {
                 // build the response list starting with the song in the queue
@@ -530,7 +542,7 @@ namespace Karayote
 
             // tack on any previously sung songs in this session as a history
             List<SelectedSong>? history = currentSession.GetUserHistory(user);
-            if(history is not null)
+            if (history is not null)
             {
                 response += "\n\nPreviously sung today:";
                 foreach (var item in history)
@@ -586,7 +598,7 @@ namespace Karayote
             else // this needs to be fleshed out
             {
                 await interaction.Reply($"The queue has closed for now, but I have not been programmed to know why in this case");
-            }            
+            }
         }
 
         /// <summary>
@@ -597,7 +609,7 @@ namespace Karayote
         {
             if (currentSession.SongQueue.NowPlaying is null) return; // if there's no current song, there's nothing to do here
             await botifex.SendToUser(currentSession.SongQueue.NowPlaying.User.BotUser!, $"It's now your turn to sing {currentSession.SongQueue.NowPlaying.Title}! Come on up to the stage!");
-            
+
             if (currentSession.SongQueue.NextUp is null) return; // if there's no next song, there's nothing left to do here
             await botifex.SendToUser(currentSession.SongQueue.NextUp.User.BotUser!, $"You'll be up next to sing {currentSession.SongQueue.NextUp.Title} after {currentSession.SongQueue.NowPlaying.User.Name} sings {currentSession.SongQueue.NowPlaying.Title}. Don't go too far!");
         }
@@ -618,7 +630,7 @@ namespace Karayote
 #endif
             string reply = "";
             // if this is a /start command from interacting with the telegram bot for the first time
-            if(interaction is TelegramTextInteraction && interaction.Text == "/start")
+            if (interaction is TelegramTextInteraction && interaction.Text == "/start")
             {
                 reply = "Hey there! Check out the menu button at the bottom to see your options, or type /help for more information";
             }
@@ -650,12 +662,12 @@ namespace Karayote
                 // menu options for choosing a song that was returned from a karafun search
                 case "chosensong":
                     Song chosenSong = knownSongs.First(s => s.Id == uint.Parse(e.Reply));
-                    
+
                     KarafunSong karafunSong = new KarafunSong(chosenSong, user);
 #if DEBUG
                     log.LogDebug($"[{DateTime.Now}] Got request for {karafunSong.Title} from {user.Name} with id {user.Id}");
 #endif
-                    TryAddSong(karafunSong, ref response);
+                    response = await TryAddSong(karafunSong);
                     response += "\n\n" + GetMySongs(user);
                     break;
 
@@ -671,7 +683,7 @@ namespace Karayote
                 default: break;
             }
 
-            if(!String.IsNullOrEmpty(response)) await e.Interaction.Reply(response);
+            if (!string.IsNullOrEmpty(response)) await e.Interaction.Reply(response);
             await e.Interaction.End();
         }
 
@@ -680,22 +692,23 @@ namespace Karayote
         /// </summary>
         /// <param name="song">The <see cref="SelectedSong"/> to try to add to the queue</param>
         /// <param name="response">A <see cref="string"/> reponse to let the user know how that went</param>
-        private void TryAddSong(SelectedSong song, ref string response)
+        public async Task<string> TryAddSong(SelectedSong song)
         {
+            string response = string.Empty;
             switch (currentSession.GetInLine(song))
             {
                 case Session.SongAddResult.SuccessInQueue:
                     int position = currentSession.SongQueue.Count;
                     response = $"Added {song.Title} to the queue at position {position}";
-                    if(position == 1)
+                    if (position == 1)
                     {
                         response += "\n\n" + (currentSession.IsStarted ? "It's your turn right now! Come on up to the stage!" : "You will be up first! Don't go anywhere");
-                    } 
+                    }
                     else if (position == 2)
                     {
                         response += "\n\n" + (currentSession.IsStarted ? "You are up after this person finishes singing! Don't go anywhere" : "You will be up second! Don't go anywhere");
                     }
-                    KarayoteStatusUpdate(karafun.Status).Wait();
+                    await KarayoteStatusUpdate(karafun.Status);
                     break;
                 case Session.SongAddResult.SuccessInReserve:
                     response = $"Added {song.Title} to your reserved songs";
@@ -714,8 +727,9 @@ namespace Karayote
                     break;
                 default:
                     response = $"Something so unexpected occurred that I have no idea if your song was added or not. Please check using /mysongs and speak with the hosts if it's not there";
-                    break;                               
-            }   
+                    break;
+            }
+            return response;
         }
 
         /// <summary>
@@ -747,10 +761,26 @@ namespace Karayote
         /// <returns>An existing or newly created <see cref="KarayoteUser"/></returns>
         private KarayoteUser CreateOrFindUser(BotifexUser remoteUser)
         {
-            KarayoteUser? user = knownUsers.FirstOrDefault(u=>u.Id == remoteUser.Guid);
-            if (user == null)
+            KarayoteUser? user = knownUsers.FirstOrDefault(u => u.Id == remoteUser.Guid);
+            if (user is null)
             {
                 user = new KarayoteUser(remoteUser);
+                knownUsers.Add(user);
+            }
+            return user;
+        }
+
+        /// <summary>
+        /// Make sure any non-Botifex user has a unique username, return the existing user if this user has been seen before
+        /// </summary>
+        /// <param name="username">A <see cref="string"/> identifying the user</param>
+        /// <returns>The <see cref="KarayoteUser"/> object for this user</returns>
+        public KarayoteUser CreateOrFindUser(string username)
+        {
+            KarayoteUser? user = knownUsers.FirstOrDefault(u => u.Name == username);
+            if (user is null)
+            {
+                user = new KarayoteUser(username);
                 knownUsers.Add(user);
             }
             return user;

@@ -15,12 +15,12 @@ namespace Karayote.Models
         /// <summary>
         /// The numerical internal id Karafun uses for this song, <see cref="string"/>ified
         /// </summary>
-        internal override string Id { get => Song.Id.ToString(); } 
+        public override string Id { get => Song.Id.ToString(); } 
 
         /// <summary>
         /// A formatted title for this song made up of the artist's name and the name of the song
         /// </summary>
-        internal override string Title { get => $"{Song.Artist} - {Song.Title}"; }
+        public override string Title { get => $"{Song.Artist} - {Song.Title}"; }
 
         /// <summary>
         /// Construct a KarafunSong

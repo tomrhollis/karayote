@@ -1,4 +1,8 @@
-﻿namespace Karayote.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Karayote.Models
 {
     /// <summary>
     /// A representation of the scheduled karaoke session for the night, tracking its information and state
@@ -23,17 +27,17 @@
         /// <summary>
         /// Whether the queue is actually open for additions right now
         /// </summary>
-        public bool IsOpen { get => (OpenTime is not null && DateTime.Now > OpenTime) && (EndTime is null || DateTime.Now < EndTime) && !QueueFull && !queueClosed; }
+        public bool IsOpen { get => OpenTime is not null && DateTime.Now > OpenTime && (EndTime is null || DateTime.Now < EndTime) && !QueueFull && !queueClosed; }
 
         /// <summary>
         /// Whether the queue is flowing
         /// </summary>
-        public bool IsStarted { get => (StartTime is not null && DateTime.Now > StartTime) && (EndTime is null || DateTime.Now < EndTime); }
+        public bool IsStarted { get => StartTime is not null && DateTime.Now > StartTime && (EndTime is null || DateTime.Now < EndTime); }
 
         /// <summary>
         /// Whether this session is done and no more songs will be sung
         /// </summary>
-        public bool IsOver { get => (EndTime is not null && DateTime.Now > EndTime); }
+        public bool IsOver { get => EndTime is not null && DateTime.Now > EndTime; }
 
         /// <summary>
         /// Whether the <see cref="SongQueue"/> is long enough to overrun the scheduled <see cref="EndTime"/>
@@ -46,14 +50,14 @@
         public bool HasWaitingList { get => waitingList.Count > 0; }
 
         /// <summary>
-        /// The <see cref="Karayote.SongQueue"/> holding the songs waiting to be sung at this event
+        /// The <see cref="Models.SongQueue"/> holding the songs waiting to be sung at this event
         /// </summary>
         public SongQueue SongQueue { get; private set; } = new SongQueue();
 
         private List<KarayoteUser> waitingList = new List<KarayoteUser>();
         private bool queueClosed = false; // for closing the queue temporarily after the event starts
         private List<SelectedSong> selectedSongs = new List<SelectedSong>(); // songs that were selected tonight and still in waiting, or were successfully sung
-        private bool noRepeats = true; // plaeholder for a potential future settings option.
+        private bool noRepeats = true; // placeholder for a potential future settings option.
                                        // Until then it's not allowed for multiple people to sing the same song in a session
 
         /// <summary>
@@ -72,10 +76,10 @@
         /// <summary>
         /// Constructor to create a new <see cref="Session"/> for a scheduled karaoke event
         /// </summary>
-        /// <param name="norepeats">Whether it should be allowed for different people to select the same song in a session</param>
-        public Session(bool norepeats = true) 
+        /// <param name="queue">The <see cref="Models.SongQueue"/> to use for this session</param>
+        public Session(SongQueue queue)
         {
-            noRepeats = norepeats;
+            SongQueue = queue;
         }
 
         /// <summary>
@@ -85,10 +89,10 @@
         /// <returns>The <see cref="SongAddResult"/> describing the outcome of this request</returns>
         internal SongAddResult GetInLine(SelectedSong song)
         {
-            if (!IsStarted) return SongAddResult.QueueClosed;
+            if (!IsOpen) return SongAddResult.QueueClosed;
 
             // eventually check first if other users have that song reserved or sung already
-            if (noRepeats && selectedSongs.FirstOrDefault(s=>s.Id == song.Id) is not null)
+            if (noRepeats && selectedSongs.FirstOrDefault(s => s.Id == song.Id) is not null)
                 return SongAddResult.AlreadySelected;
 
             if (SongQueue.HasUser(song.User) || !IsOpen)
@@ -107,7 +111,8 @@
             }
 
             SongQueue.AddSong(song);
-            selectedSongs.Add(song);
+            if(song is not PlaceholderSong)
+                selectedSongs.Add(song);
             return SongAddResult.SuccessInQueue;
         }
 
@@ -119,10 +124,10 @@
         /// <returns>A <see cref="bool"/> whether the song was removed or not</returns>
         internal bool RemoveSong(KarayoteUser user, int position)
         {
-            SelectedSong? removedSong = null;            
+            SelectedSong? removedSong = null;
 
             // when the song is in the main queue
-            if(position == 1)
+            if (position == 1)
             {
                 // if user has no reserved songs simply remove this one
                 if (user.ReservedSongCount == 0)
@@ -133,7 +138,7 @@
             }
 
             // when the song is in the user's reserve
-            else if (position > 1 && (position - 1) < KarayoteUser.MAX_RESERVED_SONGS)
+            else if (position > 1 && position - 1 < KarayoteUser.MAX_RESERVED_SONGS)
                 removedSong = user.RemoveReservedSong(position - 2);
 
             // if it worked, clean the song out of the song history for this session so it can be selected again (unless it was actually sung already)
@@ -162,13 +167,13 @@
             {
                 // get the later song in the user's reserve that will be replaced
                 SelectedSong? songFromReserve = user.GetSelectedSong(laterSongPosition - 2);
-                
+
                 // failed to find the reserve song
                 if (songFromReserve is null)
                     return false;
 
                 SelectedSong? songFromQueue = SongQueue.ReplaceUserSong(user, songFromReserve);
-                
+
                 // failed to replace a queued song
                 if (songFromQueue is null)
                     return false;
@@ -220,19 +225,19 @@
         /// Move to the next song in the queue
         /// </summary>
         internal void NextSong()
-        {            
-            if(SongQueue.NowPlaying is not null)
+        {
+            if (SongQueue.NowPlaying is not null)
             {
                 // set the song's completion time in the history
                 int index = selectedSongs.IndexOf(SongQueue.NowPlaying);
-                selectedSongs[index].SetSungTime();                
+                selectedSongs[index].SetSungTime();
 
                 // remove song from the queue 
                 SongQueue.Pop();
 
                 // shift in any reserve song and remove it from their reserve
                 SelectedSong? reservedSong = selectedSongs[index].User.RemoveReservedSong(0);
-                if(reservedSong is not null)
+                if (reservedSong is not null)
                     SongQueue.AddSong(reservedSong);
             }
         }

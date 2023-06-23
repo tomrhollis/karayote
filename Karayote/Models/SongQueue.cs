@@ -1,32 +1,62 @@
-﻿namespace Karayote.Models
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+
+namespace Karayote.Models
 {
     /// <summary>
     /// Provides a queue of <see cref="SelectedSong" />s in a form that objects can be easily swapped out or removed from the middle as needed />
     /// </summary>
-    internal class SongQueue
+    internal class SongQueue : ObservableObject
     {
-        private List<SelectedSong> songQueue = new List<SelectedSong>();
         private static readonly object _lock = new object();
+
+        /// <summary>
+        /// Where all the queued songs are stored
+        /// </summary>
+        public ObservableCollection<SelectedSong> TheQueue { get; private set; } = new ObservableCollection<SelectedSong>();
+
+        private string textVersion;
+        public string TextVersion
+        {
+            get => textVersion;
+            set
+            {
+                if(textVersion != value)
+                    SetProperty(ref textVersion, value);
+            }
+        }
 
         /// <summary>
         /// The count of how many <see cref="SelectedSong"/>s are waiting to be sung
         /// </summary>
-        public int Count { get => songQueue.Count; }
+        public int Count { get => TheQueue.Count; }
 
         /// <summary>
         /// Return the currently active <see cref="SelectedSong"/>, if it exists
         /// </summary>
-        internal SelectedSong? NowPlaying { get => songQueue.Count > 0 ? songQueue[0] : null; }
+        internal SelectedSong? NowPlaying { get => TheQueue.Count > 0 ? TheQueue[0] : null; }
 
         /// <summary>
         /// Return the <see cref="SelectedSong"/> that's next up in line, if it exists
         /// </summary>
-        internal SelectedSong? NextUp { get => songQueue.Count > 1 ? songQueue[1] : null; }
+        internal SelectedSong? NextUp { get => TheQueue.Count > 1 ? TheQueue[1] : null; }
 
         /// <summary>
         /// Default constructor to create a new <see cref="SongQueue"/>
         /// </summary>
-        public SongQueue() { }
+        public SongQueue() 
+        {
+            // populate observable text representation
+            TextVersion = ToString();
+            
+            // subscribe to collection changed event to update observable text version as needed
+            TheQueue.CollectionChanged += (s, e) =>
+            {
+                TextVersion = ToString();
+            };
+        }
 
         /// <summary>
         /// Checks to see if a user is already in the queue, and if not adds their selection
@@ -37,7 +67,7 @@
         {
             lock (_lock)
             {
-                songQueue.Add(song);
+                TheQueue.Add(song);
             }
         }
 
@@ -51,7 +81,7 @@
             bool hasSong = false;
             lock (_lock)
             {
-                hasSong = songQueue.FirstOrDefault(s => s.Id == song.Id) is not null;
+                hasSong = TheQueue.FirstOrDefault(s => s.Id == song.Id) is not null;
             }
             return hasSong;
         }
@@ -66,7 +96,7 @@
             bool hasUser = false;
             lock (_lock)
             {
-                hasUser = songQueue.FirstOrDefault(s => s.User.Id == user.Id) is not null;
+                hasUser = TheQueue.FirstOrDefault(s => s.User.Id == user.Id) is not null;
             }
             return hasUser;
         }
@@ -76,16 +106,16 @@
         /// </summary>
         /// <param name="user">The <see cref="KarayoteUser"/> who may have a song in the queue</param>
         /// <returns>A <see cref="Tuple"/> of <see cref="SelectedSong"/> and <see cref="int"/> if a song is found, null otherwise</returns>
-        internal Tuple<SelectedSong,int>? GetUserSongWithPosition(KarayoteUser user)
+        internal Tuple<SelectedSong, int>? GetUserSongWithPosition(KarayoteUser user)
         {
             lock (_lock)
             {
-                SelectedSong? selectedSong = songQueue.FirstOrDefault(s => s.User.Id == user.Id);
+                SelectedSong? selectedSong = TheQueue.FirstOrDefault(s => s.User.Id == user.Id);
                 if (selectedSong is null) return null;
 
-                int position = songQueue.IndexOf(selectedSong) + 1;
+                int position = TheQueue.IndexOf(selectedSong) + 1;
                 return new Tuple<SelectedSong, int>(selectedSong, position);
-            }            
+            }
         }
 
         /// <summary>
@@ -97,9 +127,9 @@
         {
             lock (_lock)
             {
-                SelectedSong? songToRemove = songQueue.FirstOrDefault(s => s.User.Id == user.Id);
+                SelectedSong? songToRemove = TheQueue.FirstOrDefault(s => s.User.Id == user.Id);
                 if (songToRemove is not null)
-                    songQueue.Remove(songToRemove);
+                    TheQueue.Remove(songToRemove);
 
                 return songToRemove;
             }
@@ -114,15 +144,17 @@
         internal SelectedSong? ReplaceUserSong(KarayoteUser user, SelectedSong newSong)
         {
             SelectedSong? removedSong = null;
-            lock(_lock)
+            lock (_lock)
             {
                 try
                 {
-                    int position = songQueue.FindIndex(s => s.User.Id == user.Id);
-                    removedSong = songQueue[position];
-                    songQueue[position] = newSong;
+                    int position = TheQueue.IndexOf(TheQueue.First(s => s.User.Id == user.Id));
+                    removedSong = TheQueue[position];
+                    TheQueue[position] = newSong;
                 }
                 catch (ArgumentNullException)
+                { }
+                catch (InvalidOperationException)
                 { }
             }
             return removedSong;
@@ -134,13 +166,13 @@
         /// <returns>The <see cref="SelectedSong"/> that was just completed, or <see cref="null"/> if the queue was empty</returns>
         public SelectedSong? Pop()
         {
-            if (songQueue.Count == 0) return null;
+            if (TheQueue.Count == 0) return null;
             lock (_lock)
             {
-                SelectedSong song = songQueue.First();
-                songQueue.RemoveAt(0);
+                SelectedSong song = TheQueue.First();
+                TheQueue.RemoveAt(0);
                 return song;
-            }            
+            }
         }
 
 
@@ -152,17 +184,17 @@
         {
             string queue = "SONG QUEUE\n" +
                            "----------\n";
-            if (songQueue.Count > 0)
+            if (TheQueue.Count > 0)
             {
                 int i = 1;
                 lock (_lock)
                 {
                     string position = "Now";
-                    foreach (var song in songQueue)
+                    foreach (var song in TheQueue)
                     {
                         queue += $"{position}] {song}\n";
                         i++;
-                        position = (i == 2 ? "Next" : i.ToString());
+                        position = i == 2 ? "Next" : i.ToString();
                     }
                 }
             }
