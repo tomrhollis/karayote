@@ -8,42 +8,55 @@
         xmlns:dd="urn:gong-wpf-dragdrop"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="481" Width="960">
 
-    <StackPanel Orientation="Horizontal"> <!-- whole window-->
-        <StackPanel Width="316"> <!-- left side (now and next) -->
-            <StackPanel Height="69" Width="293" Margin="0,40,0,0"> <!-- now -->
+    <!-- whole window-->
+    <StackPanel Orientation="Horizontal">
+        <!-- left side (now and next) -->
+        <StackPanel Width="316">
+            <!-- now -->
+            <StackPanel Height="69" Width="293" Margin="0,40,0,0">                
                 <Label>
                     Now Playing
                 </Label>
                 <TextBox Text="{Binding NowPlaying, Mode=OneWay}" IsReadOnly="True" />
-                <Button Width="50" HorizontalAlignment="Left">Done</Button>
-            </StackPanel>
-            <StackPanel Height="69" Width="293" Margin="0,40,0,0"> <!-- next -->
+                <Grid HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" HorizontalAlignment="Left" Width="50" Command="{Binding SongDoneCommand}">Done</Button>
+                    <!--<Button Grid.Column="1" HorizontalAlignment="Center" Width="50" Command="{Binding SongReplaceCommand}">Replace</Button>-->
+                    <!--<Button Grid.Column="2" HorizontalAlignment="Right" Width="50" Command="{Binding __Command}">__</Button>-->
+                </Grid>
+                    
+                
+            </StackPanel>            
+            <!-- next -->
+            <StackPanel Height="69" Width="293" Margin="0,40,0,0">                
                 <Label>
                     Next Up
                 </Label>
                 <TextBox Text="{Binding NextUp, Mode=OneWay}" IsReadOnly="True" />
-                <Button Width="50" HorizontalAlignment="Left">Remove</Button>
+                <Button Width="50" HorizontalAlignment="Left" Command="{Binding RemoveNextCommand}">Remove</Button>
             </StackPanel>
         </StackPanel>
-
-        <StackPanel Orientation="Vertical" Width="238"> <!-- middle panel: queue -->
-            <Label FontSize="14" Width="201">
-                The Queue
-            </Label>
+        <!-- middle panel: queue -->
+        <StackPanel Orientation="Vertical" Width="336">            
+            <Label FontSize="14" Width="284" Content="The Queue"/>
             <ListBox Margin="0,0,5,0"
-                    Width="200"
+                    Width="282"
+                    Height="363"
+                    ItemsSource="{Binding RemainingQueue}"
+                    SelectedItem="{Binding SelectedQueueSong, Mode=TwoWay}"
+                    SelectedIndex="{Binding SelectedIndex, Mode=OneWayToSource}"
                     dd:DragDrop.IsDragSource="True"
-                    dd:DragDrop.IsDropTarget="True" Height="363">
-                <!--dd:DragDrop.DropHandler="{Binding}"-->
-            </ListBox>
-            <Button Width="50">
-                Delete
-            </Button>
+                    dd:DragDrop.IsDropTarget="True"/> 
+            <Button Width="50" Content="Delete" Command="{Binding DeleteSongCommand}"/>
         </StackPanel>
-
-        <StackPanel Orientation="Vertical" Width="244"> <!-- right panel: add song -->
+        <!-- right panel: add song -->
+        <StackPanel Orientation="Vertical" Width="244">            
             <Label FontSize="14">
                 Add a Song
             </Label>
@@ -57,6 +70,5 @@
             <TextBox Text="{Binding SongTitle}" Width="222"/>
             <Button Width="50" Margin="20,10" HorizontalAlignment="Left" Command="{Binding AddSongCommand}">Add</Button>
         </StackPanel>
-
     </StackPanel>
 </Window>

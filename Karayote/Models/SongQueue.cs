@@ -161,6 +161,23 @@ namespace Karayote.Models
         }
 
         /// <summary>
+        /// Moves a song from one place in the queue to another
+        /// </summary>
+        /// <param name="oldIndex">The zero-indexed position of the song to find in the queue</param>
+        /// <param name="newIndex">The zero-indexed position to move the song to</param>
+        public void MoveSong(int oldIndex, int newIndex)
+        {
+            lock (_lock)
+            {
+                oldIndex = Math.Clamp(oldIndex, 0, TheQueue.Count - 1);
+                newIndex = Math.Clamp(newIndex, 0, TheQueue.Count - 1);           
+
+                TheQueue.Move(oldIndex, newIndex);
+            }
+            
+        }
+
+        /// <summary>
         /// Remove the first song from the song queue and return it. This represents the currently active song being completed or canceled.
         /// </summary>
         /// <returns>The <see cref="SelectedSong"/> that was just completed, or <see cref="null"/> if the queue was empty</returns>
@@ -174,7 +191,6 @@ namespace Karayote.Models
                 return song;
             }
         }
-
 
         /// <summary>
         /// Convert this object to a <see cref="string"/>, as you do

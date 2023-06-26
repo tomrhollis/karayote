@@ -15,7 +15,6 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Linq;
 using Microsoft.Extensions.Hosting;
-using Karayote.Views;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Karayote.Models
@@ -192,7 +191,7 @@ namespace Karayote.Models
         public Task StartAsync(CancellationToken cancellationToken) // not actually async due to lack of need, but that's the interface signature
         {
             log.LogDebug("StartAsync has been called.");
-            karafun.OnStatusUpdated += KarafunStatusUpdate;
+            //karafun.OnStatusUpdated += KarafunStatusUpdate;
             return Task.CompletedTask;
         }
 
@@ -304,7 +303,7 @@ namespace Karayote.Models
                         currentSession.Open();
                         await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me to make your selections and get in line.", notification: true);
                         await interaction.Reply("The session is now open for searching and queueing.");
-                        await KarayoteStatusUpdate(karafun.Status);
+                        await KarayoteStatusUpdate();
                     }
                     await interaction.End();
                     break;
@@ -426,7 +425,7 @@ namespace Karayote.Models
                             {
                                 response = "Done!\n\n" + GetMySongs(user);
                                 if (Math.Min(position1, position2) == 1) // trigger a status update if one of the queued songs changed
-                                    await KarayoteStatusUpdate(karafun.Status);
+                                    await KarayoteStatusUpdate();
                             }
                         }
                     }
@@ -467,10 +466,7 @@ namespace Karayote.Models
                     response = "We're not singing right now";
                     if (currentSession.IsStarted && !currentSession.IsOver && currentSession.SongQueue.Count > 0) // only if the queue is moving right now
                     {
-                        await botifex.ReplaceStatusMessage($"{currentSession.SongQueue.NowPlaying!.User.Name} just sang {currentSession.SongQueue.NowPlaying.Title}");
-                        currentSession.NextSong();                  // advance queue
-                        await KarayoteStatusUpdate(karafun.Status); // update status posts
-                        await SendSingerNotifications();            // notify next 2 singers
+                        await AdvanceQueue(true);
                         response = "Done!";
                     }
                     await interaction.Reply(response);
@@ -571,7 +567,7 @@ namespace Karayote.Models
                     if (position == 1) // assure the user that they're still in the same spot in the queue if they had a reserved song
                     {
                         response += reservedSong ? " Your first reserved song has taken its place in the queue" : "";
-                        await KarayoteStatusUpdate(karafun.Status);
+                        await KarayoteStatusUpdate();
                     }
                 }
             }
@@ -607,11 +603,11 @@ namespace Karayote.Models
         /// <returns><see cref="Task.CompletedTask"/></returns>
         private async Task SendSingerNotifications()
         {
-            if (currentSession.SongQueue.NowPlaying is null) return; // if there's no current song, there's nothing to do here
-            await botifex.SendToUser(currentSession.SongQueue.NowPlaying.User.BotUser!, $"It's now your turn to sing {currentSession.SongQueue.NowPlaying.Title}! Come on up to the stage!");
+            if (!(currentSession.SongQueue.NowPlaying is null) && !(currentSession.SongQueue.NowPlaying.User.BotUser is null))
+                await botifex.SendToUser(currentSession.SongQueue.NowPlaying.User.BotUser!, $"It's now your turn to sing {currentSession.SongQueue.NowPlaying.Title}! Come on up to the stage!");
 
-            if (currentSession.SongQueue.NextUp is null) return; // if there's no next song, there's nothing left to do here
-            await botifex.SendToUser(currentSession.SongQueue.NextUp.User.BotUser!, $"You'll be up next to sing {currentSession.SongQueue.NextUp.Title} after {currentSession.SongQueue.NowPlaying.User.Name} sings {currentSession.SongQueue.NowPlaying.Title}. Don't go too far!");
+            if (!(currentSession.SongQueue.NextUp is null) && !(currentSession.SongQueue.NextUp.User.BotUser is null))
+                await botifex.SendToUser(currentSession.SongQueue.NextUp.User.BotUser!, $"You'll be up next to sing {currentSession.SongQueue.NextUp.Title} after {currentSession.SongQueue.NowPlaying!.User.Name} sings {currentSession.SongQueue.NowPlaying.Title}. Don't go too far!");
         }
 
         /// <summary>
@@ -708,7 +704,7 @@ namespace Karayote.Models
                     {
                         response += "\n\n" + (currentSession.IsStarted ? "You are up after this person finishes singing! Don't go anywhere" : "You will be up second! Don't go anywhere");
                     }
-                    await KarayoteStatusUpdate(karafun.Status);
+                    await KarayoteStatusUpdate();
                     break;
                 case Session.SongAddResult.SuccessInReserve:
                     response = $"Added {song.Title} to your reserved songs";
@@ -733,25 +729,24 @@ namespace Karayote.Models
         }
 
         /// <summary>
-        /// Event handler for when anything about the Karafun status changes
+        /// Event handler for when anything about the Karafun status changes -- currently disabled
         /// </summary>
         /// <param name="sender">The <see cref="Karafun"/> instance whose <see cref="Status"/> has changed</param>
         /// <param name="e"><see cref="StatusUpdateEventArgs"/> containing the <see cref="Status"/> of <see cref="Karafun"/>'s queue</param>
-        private async void KarafunStatusUpdate(object? sender, StatusUpdateEventArgs e)
+        /*private async void KarafunStatusUpdate(object? sender, StatusUpdateEventArgs e)
         {
             await KarayoteStatusUpdate(e.Status); // pass status to karaoke update method
-        }
+        }*/
 
         /// <summary>
         /// Update the messenger's status messages with new information
         /// </summary>
-        /// <param name="status">The current <see cref="Status"/> of the <see cref="Karafun"/> player to add to Karayote's knowledge of the status situation</param>
         /// <returns><see cref="Task.CompletedTask"/></returns>
-        private async Task KarayoteStatusUpdate(Status status)
+        private async Task KarayoteStatusUpdate()
         {
             log.LogDebug($"[{DateTime.Now}] karayote status update fired");
             if (currentSession is null || !currentSession.IsOpen) return;
-            await botifex.SendStatusUpdate(currentSession.SongQueue.ToString() + "\n" + status.ToString());
+            await botifex.SendStatusUpdate(currentSession.SongQueue.ToString());
         }
 
         /// <summary>
@@ -784,6 +779,61 @@ namespace Karayote.Models
                 knownUsers.Add(user);
             }
             return user;
+        }
+
+        /// <summary>
+        /// Tell the queue to move a song from one position to another and trigger a status update
+        /// </summary>
+        /// <param name="oldIndex">The zero-indexed position of the song to find in the queue</param>
+        /// <param name="newIndex">The zero-indexed position to move the song to</param>
+        /// <returns><see cref="Task.CompletedTask"/></returns>
+        public async Task MoveSong(int oldIndex, int newIndex)
+        {
+            currentSession.SongQueue.MoveSong(oldIndex, newIndex);
+            await KarayoteStatusUpdate();
+        }
+
+        /// <summary>
+        /// Remove a song from the queue and perform any necessary updates
+        /// </summary>
+        /// <param name="song">The <see cref="SelectedSong"/> to find and remove from the queue</param>
+        /// <returns><see cref="Task.CompletedTask"/></returns>
+        public async Task DeleteSong(SelectedSong song)
+        {
+            Tuple<SelectedSong, int>? oldSong = currentSession.SongQueue.GetUserSongWithPosition(song.User);
+            if (oldSong is null) return;
+
+            currentSession.RemoveSong(song.User, 1);
+            await KarayoteStatusUpdate();
+
+            string message = $"The host has removed {song.Title} from the queue. ";
+            if (currentSession.SongQueue.HasUser(song.User))
+            {
+                Tuple<SelectedSong, int> newSong = currentSession.SongQueue.GetUserSongWithPosition(song.User)!;
+                message += $"It's been replaced by your song in reserve: {newSong.Item1.Title}, still at number {newSong.Item2} in line";
+            }
+            else
+                message += $"Please see them for more info. (You were at position {oldSong.Item2} in line)";
+            
+            if(song.User.BotUser is not null)
+            {
+                await botifex.SendToUser(song.User.BotUser, message);
+            }
+        }
+
+        /// <summary>
+        /// Handle admin request to move to the next song in the queue
+        /// </summary>
+        /// <param name="sung">Whether the song was actually sung or not</param>
+        /// <returns><see cref="Task.CompletedTask"/></returns>
+        public async Task AdvanceQueue(bool sung=true)
+        {
+            if(sung)
+                await botifex.ReplaceStatusMessage($"{currentSession.SongQueue.NowPlaying!.User.Name} just sang {currentSession.SongQueue.NowPlaying.Title}");
+            
+            currentSession.NextSong(sung);      // advance queue
+            await KarayoteStatusUpdate();       // update status posts
+            await SendSingerNotifications();    // notify next 2 singers
         }
     }
 }

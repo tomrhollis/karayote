@@ -224,19 +224,31 @@ namespace Karayote.Models
         /// <summary>
         /// Move to the next song in the queue
         /// </summary>
-        internal void NextSong()
+        /// <param name="sung">Whether the current song was actually sung or not</param>
+        internal void NextSong(bool sung = true)
         {
             if (SongQueue.NowPlaying is not null)
             {
-                // set the song's completion time in the history
-                int index = selectedSongs.IndexOf(SongQueue.NowPlaying);
-                selectedSongs[index].SetSungTime();
+                KarayoteUser user = SongQueue.NowPlaying.User;
+
+                // manage the sung song history
+                // placeholder songs aren't tracked in the history so this doesn't apply
+                if (SongQueue.NowPlaying is not PlaceholderSong)
+                {
+                    int index = selectedSongs.IndexOf(SongQueue.NowPlaying);                    
+
+                    // set the song's completion time in the history, or remove it from the history as not sung
+                    if (sung)
+                        selectedSongs[index].SetSungTime();
+                    else
+                        selectedSongs.RemoveAt(index);
+                }
 
                 // remove song from the queue 
                 SongQueue.Pop();
 
                 // shift in any reserve song and remove it from their reserve
-                SelectedSong? reservedSong = selectedSongs[index].User.RemoveReservedSong(0);
+                SelectedSong? reservedSong = user.RemoveReservedSong(0);
                 if (reservedSong is not null)
                     SongQueue.AddSong(reservedSong);
             }

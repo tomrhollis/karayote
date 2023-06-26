@@ -87,9 +87,6 @@ namespace KarafunAPI.Models
         /// <param name="xml">The <see cref="XmlNode"/> that Karafun sent back</param>
         internal Status(XmlDocument xml)
         {
-#if DEBUG
-            Debug.WriteLine(xml.ToString());
-#endif   
             // find the status tag on the root element and set the Status enum
             switch (xml.GetElementsByTagName("status")[0].Attributes.GetNamedItem("state").Value.ToLower())
             {
