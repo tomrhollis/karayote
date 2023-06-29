@@ -1,5 +1,7 @@
 ﻿using Botifex;
 using Botifex.Services;
+using Botifex.Services.TelegramBot;
+using Botifex.Services.Discord;
 using KarafunAPI;
 using KarafunAPI.Models;
 using Microsoft.Extensions.Configuration;
