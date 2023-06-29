@@ -693,7 +693,7 @@ namespace Karayote.Models
         public async Task<string> TryAddSong(SelectedSong song)
         {
             string response = string.Empty;
-            switch (currentSession.GetInLine(song))
+            switch (await currentSession.GetInLine(song))
             {
                 case Session.SongAddResult.SuccessInQueue:
                     int position = currentSession.SongQueue.Count;
@@ -833,7 +833,7 @@ namespace Karayote.Models
             if(sung)
                 await botifex.ReplaceStatusMessage($"{currentSession.SongQueue.NowPlaying!.User.Name} just sang {currentSession.SongQueue.NowPlaying.Title}");
             
-            currentSession.NextSong(sung);      // advance queue
+            await currentSession.NextSong(sung);// advance queue
             await KarayoteStatusUpdate();       // update status posts
             await SendSingerNotifications();    // notify next 2 singers
         }

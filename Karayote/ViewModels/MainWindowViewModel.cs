@@ -67,7 +67,10 @@ namespace Karayote.ViewModels
         public RelayCommand SongDoneCommand { get; private set; }
 
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+                               // (Fields are set in the UpdateElements() method)
         public MainWindowViewModel(IHost host)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             BindingOperations.EnableCollectionSynchronization(RemainingQueue, _lock);
 

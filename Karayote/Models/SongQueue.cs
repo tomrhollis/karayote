@@ -1,7 +1,9 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Botifex;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Karayote.Models
 {
@@ -11,6 +13,7 @@ namespace Karayote.Models
     internal class SongQueue : ObservableObject
     {
         private static readonly object _lock = new object();
+        private IBotifex botifex;
 
         /// <summary>
         /// Where all the queued songs are stored
@@ -44,10 +47,15 @@ namespace Karayote.Models
         internal SelectedSong? NextUp { get => TheQueue.Count > 1 ? TheQueue[1] : null; }
 
         /// <summary>
-        /// Default constructor to create a new <see cref="SongQueue"/>
+        /// 
         /// </summary>
-        public SongQueue() 
+        /// <param name="botifex">Injected <see cref="Botifex"/> service to send log messages to</param>
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+                               // (it complains about textVersion not being set, but it does get set when TextVersion is set)
+        public SongQueue(IBotifex botifex)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
+            this.botifex = botifex;
             // populate observable text representation
             TextVersion = ToString();
             
@@ -63,12 +71,15 @@ namespace Karayote.Models
         /// Any checks to see if a song shouldn't be added should happen in the Session
         /// </summary>
         /// <param name="song">A <see cref="SelectedSong"/> from Karafun or Youtube song requested by a user</param>
-        internal void AddSong(SelectedSong song)
+        /// <returns><see cref="Task.CompletedTask"/></returns>
+        internal async Task AddSong(SelectedSong song)
         {
             lock (_lock)
             {
                 TheQueue.Add(song);
             }
+            await botifex.LogAll($"[{DateTime.Now.ToLocalTime().ToShortTimeString()}] {song.User.Name} added {song.Title}");    // send to console and messengers as backups
+                                                                                                                                // in case DB restore fails or not implemeneted yet
         }
 
         /// <summary>

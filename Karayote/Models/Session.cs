@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Karayote.Models
 {
@@ -47,14 +48,14 @@ namespace Karayote.Models
         /// <summary>
         /// Check if there's a waiting list or not
         /// </summary>
-        public bool HasWaitingList { get => waitingList.Count > 0; }
+        //public bool HasWaitingList { get => waitingList.Count > 0; }
 
         /// <summary>
         /// The <see cref="Models.SongQueue"/> holding the songs waiting to be sung at this event
         /// </summary>
-        public SongQueue SongQueue { get; private set; } = new SongQueue();
+        public SongQueue SongQueue { get; private set; }
 
-        private List<KarayoteUser> waitingList = new List<KarayoteUser>();
+        //private List<KarayoteUser> waitingList = new List<KarayoteUser>();
         private bool queueClosed = false; // for closing the queue temporarily after the event starts
         private List<SelectedSong> selectedSongs = new List<SelectedSong>(); // songs that were selected tonight and still in waiting, or were successfully sung
         private bool noRepeats = true; // placeholder for a potential future settings option.
@@ -87,7 +88,7 @@ namespace Karayote.Models
         /// </summary>
         /// <param name="song">The <see cref="SelectedSong"/> a user wants to sing</param>
         /// <returns>The <see cref="SongAddResult"/> describing the outcome of this request</returns>
-        internal SongAddResult GetInLine(SelectedSong song)
+        internal async Task<SongAddResult> GetInLine(SelectedSong song)
         {
             if (!IsOpen) return SongAddResult.QueueClosed;
 
@@ -98,10 +99,11 @@ namespace Karayote.Models
             if (SongQueue.HasUser(song.User) || !IsOpen)
             {
                 // add to the waiting list if they're not on there yet
+                /* this feature isn't implemented yet
                 if (!IsOpen && !waitingList.Contains(song.User))
                 {
                     waitingList.Add(song.User);
-                }
+                }*/
                 if (song.User.AddReservedSong(song))
                 {
                     selectedSongs.Add(song);
@@ -110,7 +112,7 @@ namespace Karayote.Models
                 else return SongAddResult.UserReserveFull;
             }
 
-            SongQueue.AddSong(song);
+            await SongQueue.AddSong(song);
             if(song is not PlaceholderSong)
                 selectedSongs.Add(song);
             return SongAddResult.SuccessInQueue;
@@ -225,7 +227,7 @@ namespace Karayote.Models
         /// Move to the next song in the queue
         /// </summary>
         /// <param name="sung">Whether the current song was actually sung or not</param>
-        internal void NextSong(bool sung = true)
+        internal async Task NextSong(bool sung = true)
         {
             if (SongQueue.NowPlaying is not null)
             {
@@ -250,7 +252,7 @@ namespace Karayote.Models
                 // shift in any reserve song and remove it from their reserve
                 SelectedSong? reservedSong = user.RemoveReservedSong(0);
                 if (reservedSong is not null)
-                    SongQueue.AddSong(reservedSong);
+                    await SongQueue.AddSong(reservedSong);
             }
         }
 
@@ -258,6 +260,7 @@ namespace Karayote.Models
         /// Add a song from the first user in the waiting list
         /// </summary>
         /// <returns>The user who ended up added to the queue, or <see cref="null"/> if it didn't work</returns>
+        /* feature not ready for primetime yet
         internal KarayoteUser? AddFromWaitingList()
         {
             KarayoteUser? user = waitingList[0];
@@ -268,7 +271,7 @@ namespace Karayote.Models
 
             waitingList.RemoveAt(0);
             return user;
-        }
+        }*/
 
         /// <summary>
         /// Close the queue to further submissions but keep the session going
