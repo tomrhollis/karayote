@@ -47,7 +47,7 @@ namespace Karayote.Models
         internal SelectedSong? NextUp { get => TheQueue.Count > 1 ? TheQueue[1] : null; }
 
         /// <summary>
-        /// 
+        /// Create a new <see cref="SongQueue"/>
         /// </summary>
         /// <param name="botifex">Injected <see cref="Botifex"/> service to send log messages to</param>
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
