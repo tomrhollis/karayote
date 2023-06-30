@@ -48,7 +48,7 @@ namespace Karayote
                             //.AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")))
                             //.AddScoped(typeof(IRepository<>), typeof(Repository<>)); ;
                 })
-                .UseConsoleLifetime()
+                //.UseConsoleLifetime()
                 .Build();
         }
         
