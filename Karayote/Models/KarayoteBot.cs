@@ -758,7 +758,7 @@ namespace Karayote.Models
         /// <returns>An existing or newly created <see cref="KarayoteUser"/></returns>
         private KarayoteUser CreateOrFindUser(BotifexUser remoteUser)
         {
-            KarayoteUser? user = knownUsers.FirstOrDefault(u => u.Id == remoteUser.Guid);
+            KarayoteUser? user = knownUsers.FirstOrDefault(u => u.Id == remoteUser.Guid.ToString());
             if (user is null)
             {
                 user = new KarayoteUser(remoteUser);

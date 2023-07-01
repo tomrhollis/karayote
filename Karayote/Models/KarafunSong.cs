@@ -15,7 +15,7 @@ namespace Karayote.Models
         /// <summary>
         /// The numerical internal id Karafun uses for this song, <see cref="string"/>ified
         /// </summary>
-        public override string Id { get => Song.Id.ToString(); } 
+        public override string Id { get; set; } 
 
         /// <summary>
         /// A formatted title for this song made up of the artist's name and the name of the song
@@ -30,8 +30,12 @@ namespace Karayote.Models
         public KarafunSong(Song song, KarayoteUser user) : base(user)
         {
             Song = song;
+            Id = Song.Id.ToString();
         }
 
-
+        /// <summary>
+        /// Generic constructor for database
+        /// </summary>
+        public KarafunSong() { }
     }
 }

@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Karayote.Models
 {
@@ -11,7 +12,8 @@ namespace Karayote.Models
         /// <summary>
         /// The unique ID of this song, converted to string if necessary
         /// </summary>
-        public abstract string Id { get; }
+        [Key]
+        public abstract string Id { get; set; }
 
         /// <summary>
         /// The title of the song. Recommend using some kind of similar format when possible
@@ -41,6 +43,11 @@ namespace Karayote.Models
         {
             User = user;
         }
+
+        /// <summary>
+        /// Generic constructor for database
+        /// </summary>
+        public SelectedSong() { }
 
         /// <summary>
         /// Set the time the song was sung to flag that this selection was actually sung

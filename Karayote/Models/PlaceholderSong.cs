@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Karayote.Models
 {
@@ -12,11 +8,10 @@ namespace Karayote.Models
     /// </summary>
     public class PlaceholderSong : SelectedSong
     {
-        private string id = Guid.NewGuid().ToString();
         /// <summary>
         /// A random ID for this song to fulfil the requirements of the parent class
         /// </summary>
-        public override string Id { get => id; }
+        public override string Id { get; set; }
 
         private string title;
         /// <summary>
@@ -32,6 +27,12 @@ namespace Karayote.Models
         public PlaceholderSong(KarayoteUser user, string title) : base(user)
         {
             this.title = title;
+            Id = Guid.NewGuid().ToString();
         }
+
+        /// <summary>
+        /// Generic constructor for database
+        /// </summary>
+        public PlaceholderSong() { }
     }
 }

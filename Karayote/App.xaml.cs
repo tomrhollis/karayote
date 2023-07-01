@@ -10,8 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Karayote.Models;
 using Karayote.ViewModels;
 using System;
-//using Karayote.Database;
-//using Microsoft.EntityFrameworkCore;
+using Karayote.Database;
+using Microsoft.EntityFrameworkCore;
 
 namespace Karayote
 {
@@ -44,9 +44,9 @@ namespace Karayote
                             .AddSingleton<SongQueue>()              // karayote queue
                             .AddSingleton<Session>()                // karayote session info
                             .AddSingleton<MainWindowViewModel>()    // WPF view model
-                            .AddSingleton<MainWindow>();            // WPF view                                                    
-                            //.AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")))
-                            //.AddScoped(typeof(IRepository<>), typeof(Repository<>)); ;
+                            .AddSingleton<MainWindow>()            // WPF view                                                    
+                            .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")))
+                            .AddScoped(typeof(IRepository<>), typeof(Repository<>));
                 })
                 //.UseConsoleLifetime()
                 .Build();

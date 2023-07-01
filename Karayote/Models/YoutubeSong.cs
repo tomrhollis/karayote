@@ -10,12 +10,11 @@ namespace Karayote.Models
     internal class YoutubeSong : SelectedSong
     {
         internal Video? Video = null;
-        private string id = "";
 
         /// <summary>
         /// Return the 11-character YouTube video ID
         /// </summary>
-        public override string Id { get=>id; }
+        public override string Id { get; set; }
 
         /// <summary>
         /// Get the title of the Youtube video as it would display under the video on the actual site
@@ -34,7 +33,7 @@ namespace Karayote.Models
             if (id.Length != 11)
                 throw new ArgumentException("Invalid YouTube Id");
 
-            this.id = id;
+            Id = id;
         }
 
         /// <summary>
@@ -49,10 +48,15 @@ namespace Karayote.Models
             Match idInLink = Regex.Match(uri.OriginalString, "(?<=watch\\?v=|/videos/|embed\\/|youtu.be\\/|\\/v\\/|watch\\?v%3D|%2Fvideos%2F|embed%2F|youtu.be%2F|%2Fv%2F)[^#\\&\\?\\n]*", RegexOptions.IgnoreCase);
 
             if (idInLink.Success && idInLink.Value.Length == 11)
-                this.id = idInLink.Value;
+                Id = idInLink.Value;
 
             else
                 throw new ArgumentException("Invalid YouTube Link");
         }
+
+        /// <summary>
+        /// Generic constructor for database
+        /// </summary>
+        public YoutubeSong() { }
     }
 }

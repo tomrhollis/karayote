@@ -8,7 +8,11 @@ namespace Karayote.Database
         public KYContext(DbContextOptions<KYContext> options) : base(options) { }
 
         // list of tables (classes)
+        public DbSet<Session> Sessions { get; set; }
+        public DbSet<SongQueue> SongQueues { get; set; }
         public DbSet<KarayoteUser> Users { get; set; }
+        public DbSet<SelectedSong> Songs { get; set; }
+      
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -17,6 +21,13 @@ namespace Karayote.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<KarafunSong>();
+            modelBuilder.Entity<YoutubeSong>();
+            modelBuilder.Entity<PlaceholderSong>();
+
+            modelBuilder.Entity<KarayoteUser>().HasKey(x=> x.Id);
+
+            modelBuilder.Entity<SelectedSong>().HasKey(x=> x.Id);
             base.OnModelCreating(modelBuilder);
         }
     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -10,6 +11,12 @@ namespace Karayote.Models
     /// </summary>
     internal class Session
     {
+        /// <summary>
+        /// Database ID of this object
+        /// </summary>
+        [Key]
+        public int Id { get; set; }
+
         /// <summary>
         /// When the queue is scheduled to open for additions or actually was opened
         /// </summary>
@@ -53,7 +60,7 @@ namespace Karayote.Models
         /// <summary>
         /// The <see cref="Models.SongQueue"/> holding the songs waiting to be sung at this event
         /// </summary>
-        public SongQueue SongQueue { get; private set; }
+        public SongQueue SongQueue { get; set; }
 
         //private List<KarayoteUser> waitingList = new List<KarayoteUser>();
         private bool queueClosed = false; // for closing the queue temporarily after the event starts
@@ -82,6 +89,11 @@ namespace Karayote.Models
         {
             SongQueue = queue;
         }
+
+        /// <summary>
+        /// Generic constructor for database
+        /// </summary>
+        public Session() { }
 
         /// <summary>
         /// Handle a user's request to sing a song by adding it to the song queue or to their personal reserved songs

@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -16,11 +17,24 @@ namespace Karayote.Models
         private IBotifex botifex;
 
         /// <summary>
+        /// Database ID of this object
+        /// </summary>
+        [Key]
+        public int Id { get; set; }
+
+        public int SessionId { get; set; }
+        public Session Session { get; set; }
+
+
+        /// <summary>
         /// Where all the queued songs are stored
         /// </summary>
         public ObservableCollection<SelectedSong> TheQueue { get; private set; } = new ObservableCollection<SelectedSong>();
 
         private string textVersion;
+        /// <summary>
+        /// A text representation of this to track if an update occurred and trigger update events
+        /// </summary>
         public string TextVersion
         {
             get => textVersion;
@@ -65,6 +79,11 @@ namespace Karayote.Models
                 TextVersion = ToString();
             };
         }
+
+        /// <summary>
+        /// Generic constructor for database
+        /// </summary>
+        public SongQueue() { }
 
         /// <summary>
         /// Checks to see if a user is already in the queue, and if not adds their selection

@@ -1,6 +1,7 @@
 ﻿using Botifex.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Karayote.Models
 {
@@ -12,7 +13,8 @@ namespace Karayote.Models
         /// <summary>
         /// A unique ID assigned to this user
         /// </summary>
-        internal Guid Id { get; private set; }
+        [Key]
+        internal string Id { get; private set; }
 
         /// <summary>
         /// The name of this user as we know it
@@ -36,7 +38,7 @@ namespace Karayote.Models
         /// <param name="botifexUser">The <see cref="BotifexUser"/> who is interacting with this service</param>
         internal KarayoteUser(BotifexUser botifexUser)
         {
-            Id = botifexUser.Guid; // for now
+            Id = botifexUser.Guid.ToString(); // for now
             BotUser = botifexUser;
             Name = botifexUser.UserName;
             reservedSongs = new List<SelectedSong>();
@@ -49,9 +51,14 @@ namespace Karayote.Models
         internal KarayoteUser(string name)
         {
             reservedSongs = new List<SelectedSong>();
-            Id = Guid.NewGuid();
+            Id = Guid.NewGuid().ToString();
             Name = name;
         }
+
+        /// <summary>
+        /// Generic constructor for database
+        /// </summary>
+        public KarayoteUser() { }
 
         /// <summary>
         /// Add a <see cref="SelectedSong"/> to this user's reserved songs
