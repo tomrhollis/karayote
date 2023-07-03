@@ -97,8 +97,12 @@ namespace Karayote.Models
             {
                 TheQueue.Add(song);
             }
-            await botifex.LogAll($"[{DateTime.Now.ToLocalTime().ToShortTimeString()}] {song.User.Name} added {song.Title}");    // send to console and messengers as backups
-                                                                                                                                // in case DB restore fails or not implemeneted yet
+            
+            // send log message to console and messengers as backups in case DB restore fails or not implemeneted yet
+            string logOutput = $"[{DateTime.Now.ToLocalTime().ToShortTimeString()}] New add: {song.UIString}";
+            if (song is YoutubeSong)
+                logOutput += $" {((YoutubeSong)song).Link}";            
+            await botifex.LogAll(logOutput);
         }
 
         /// <summary>
