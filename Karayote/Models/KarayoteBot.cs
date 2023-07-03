@@ -28,7 +28,7 @@ namespace Karayote.Models
     {
         private ILogger<KarayoteBot> log;
         private IBotifex botifex;
-        private IKarafun karafun;
+        internal IKarafun karafun;
         private YouTubeService youtube;
         internal Session currentSession;
         private List<KarayoteUser> knownUsers = new List<KarayoteUser>();
