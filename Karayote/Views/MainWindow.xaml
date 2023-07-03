@@ -52,7 +52,13 @@
                     SelectedItem="{Binding SelectedQueueSong, Mode=TwoWay}"
                     SelectedIndex="{Binding SelectedIndex, Mode=OneWayToSource}"
                     dd:DragDrop.IsDragSource="True"
-                    dd:DragDrop.IsDropTarget="True"/> 
+                    dd:DragDrop.IsDropTarget="True">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Label Content="{Binding UIString}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
             <Button Width="50" Content="Delete" Command="{Binding DeleteSongCommand}"/>
         </StackPanel>
         <!-- right panel: add song -->

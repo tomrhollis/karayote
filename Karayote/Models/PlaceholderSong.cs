@@ -20,6 +20,11 @@ namespace Karayote.Models
         public override string Title { get => title; }
 
         /// <summary>
+        /// String representation for the UI, with type info
+        /// </summary>
+        public override string UIString => $"[PH] {base.ToString()}";
+
+        /// <summary>
         /// Construct a <see cref="PlaceholderSong"/> with a user and a song title
         /// </summary>
         /// <param name="user">The <see cref="KarayoteUser"/> who asked to sing this song</param>
@@ -34,5 +39,6 @@ namespace Karayote.Models
         /// Generic constructor for database
         /// </summary>
         public PlaceholderSong() { }
+
     }
 }

@@ -21,6 +21,11 @@ namespace Karayote.Models
         public abstract string Title { get; }
 
         /// <summary>
+        /// ToString replacement for the UI, to include type info
+        /// </summary>
+        public abstract string UIString { get; }
+
+        /// <summary>
         /// The <see cref="KarayoteUser"/> who requested this song
         /// </summary>
         public KarayoteUser User { get; private protected set; }

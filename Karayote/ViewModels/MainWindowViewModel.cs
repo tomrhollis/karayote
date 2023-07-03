@@ -163,9 +163,9 @@ namespace Karayote.ViewModels
 
         private void UpdateElements()
         {
-            NowPlaying = songQueue.NowPlaying is null ? "" : songQueue.NowPlaying.ToString();
+            NowPlaying = songQueue.NowPlaying is null ? "" : songQueue.NowPlaying.UIString;
 
-            NextUp = songQueue.NextUp is null ? "" : songQueue.NextUp.ToString();
+            NextUp = songQueue.NextUp is null ? "" : songQueue.NextUp.UIString;
 
             lock (_lock)
             {

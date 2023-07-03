@@ -22,6 +22,11 @@ namespace Karayote.Models
         public override string Title { get => (Video is null) ? $"YouTube video with ID {Id}" : Video.Snippet.Title; }
 
         /// <summary>
+        /// String representation for the UI, with type info
+        /// </summary>
+        public override string UIString => $"[YT] {base.ToString()}";
+
+        /// <summary>
         /// Constructor for a new <see cref="YoutubeSong"/> based on an ID string
         /// </summary>
         /// <param name="id">The unique ID of the Youtube video in <see cref="string"/> form</param>
