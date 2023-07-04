@@ -8,7 +8,7 @@
         xmlns:dd="urn:gong-wpf-dragdrop"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="481" Width="960">
+        Title="Karayote Admin Tool" Height="481" Width="960">
 
     <!-- whole window-->
     <StackPanel Orientation="Horizontal">

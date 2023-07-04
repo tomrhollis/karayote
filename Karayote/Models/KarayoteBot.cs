@@ -261,7 +261,7 @@ namespace Karayote.Models
                 case "seequeue":
                     if (currentSession.IsOpen || currentSession.IsStarted)
                     {
-                        await interaction.Reply(currentSession.SongQueue.ToString());
+                        await interaction.Reply(currentSession.SongQueue.ToString()+"\n\nJoin https://t.me/+IvgdfqSY2MwxNTZh to see tonight's song history and a constantly updated queue");
                     }
                     else
                         await NoSessionReply(interaction);
@@ -277,7 +277,9 @@ namespace Karayote.Models
 
                 // get the unique ID of the chat this command came from. Needed for setting up Telegram. Should be disabled in appsettings.json when not needed
                 case "getid":
-                    await interaction.Reply($"Chat ID: {((Interaction)interaction).Source.ChannelId}");
+                    string channelId = ((Interaction)interaction).Source.ChannelId;
+                    await botifex.LogAll($"Chat ID: {channelId}");
+                    await interaction.Reply($"The ID of this channel has been sent to the log");
                     await interaction.End();
                     break;
 
@@ -303,7 +305,7 @@ namespace Karayote.Models
                     else
                     {
                         currentSession.Open();
-                        await botifex.SendOneTimeStatusUpdate("The session is now open for searching and queueing! DM me to make your selections and get in line.", notification: true);
+                        await botifex.SendOneTimeStatusUpdate("You can now search and add songs to the queue while waiting for singing to start! DM me (the bot) to make your selections and get in line.", notification: false);
                         await interaction.Reply("The session is now open for searching and queueing.");
                         await KarayoteStatusUpdate();
                     }
@@ -630,12 +632,12 @@ namespace Karayote.Models
             // if this is a /start command from interacting with the telegram bot for the first time
             if (interaction is TelegramTextInteraction && interaction.Text == "/start")
             {
-                reply = "Hey there! Check out the menu button at the bottom to see your options, or type /help for more information";
+                reply = "Hey there! Check out the menu button at the bottom to see your options, or type /help for more information.\n\nJoin https://t.me/+IvgdfqSY2MwxNTZh to see tonight's song history and a constantly updated queue";
             }
             // otherwise just tell them to use a command
             else
             {
-                reply = "I see you! Please use a slash command to make a request.";
+                reply = "Oh hi! Please use a slash command to make a request.";
             }
             await interaction.Reply(reply);
             await interaction.End();
@@ -748,7 +750,7 @@ namespace Karayote.Models
         {
             log.LogDebug($"[{DateTime.Now}] karayote status update fired");
             if (currentSession is null || !currentSession.IsOpen) return;
-            await botifex.SendStatusUpdate(currentSession.SongQueue.ToString());
+            await botifex.SendStatusUpdate("DM the karayote bot to join!\n"+currentSession.SongQueue.ToString());
         }
 
         /// <summary>
