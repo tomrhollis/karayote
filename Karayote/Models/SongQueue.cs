@@ -232,8 +232,7 @@ namespace Karayote.Models
         /// <returns>A <see cref="string"/> listing the songs in the queue in a formatted way</returns>
         public override string ToString()
         {
-            string queue = "SONG QUEUE\n" +
-                           "----------\n";
+            string queue = "SONG QUEUE:\n\n";
             if (TheQueue.Count > 0)
             {
                 int i = 1;
@@ -249,9 +248,8 @@ namespace Karayote.Models
                 }
             }
             else
-            {
                 queue += "Empty";
-            }
+
             return queue.Trim();
         }
     }

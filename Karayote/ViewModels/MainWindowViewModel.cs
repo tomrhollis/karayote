@@ -6,11 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Data;
-using System.Windows.Threading;
 
 namespace Karayote.ViewModels
 {
@@ -24,14 +22,30 @@ namespace Karayote.ViewModels
         public string NowPlaying 
         {
             get => nowPlaying;
-            private set => SetProperty(ref nowPlaying, value);
+            private set
+            {
+                SetProperty(ref nowPlaying, value);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    SongDoneCommand?.NotifyCanExecuteChanged();
+                    LoadCommand?.NotifyCanExecuteChanged();
+                });
+            }
         }
 
         private string nextUp;
         public string NextUp 
         {
             get => nextUp;
-            private set => SetProperty(ref nextUp, value);
+            private set
+            {
+                SetProperty(ref nextUp, value);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    RemoveNextCommand?.NotifyCanExecuteChanged();
+                });
+                
+            }
         }
 
         public ObservableCollection<SelectedSong> RemainingQueue { get; set; } = new ObservableCollection<SelectedSong>();
@@ -40,34 +54,55 @@ namespace Karayote.ViewModels
         public string SingerName
         {
             get => singerName;
-            set => SetProperty(ref singerName, value);
+            set
+            {
+                SetProperty(ref singerName, value);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    AddSongCommand?.NotifyCanExecuteChanged();
+                });                
+            }
         }
 
         private string songTitle;
         public string SongTitle
         {
             get => songTitle;
-            set => SetProperty(ref songTitle, value);
+            set
+            {
+                SetProperty(ref songTitle, value);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    AddSongCommand?.NotifyCanExecuteChanged();
+                });
+            }            
         }
 
         private SelectedSong? selectedQueueSong;
         public SelectedSong? SelectedQueueSong
         {
             get => selectedQueueSong;
-            set => SetProperty(ref selectedQueueSong, value);
+            set
+            {
+                SetProperty(ref selectedQueueSong, value);                
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    DeleteSongCommand?.NotifyCanExecuteChanged();
+                });
+            }
         }
 
         public int SelectedIndex { get; set; }
         
-        public RelayCommand AddSongCommand { get; private set; }
+        public RelayCommand? AddSongCommand { get; private set; }
 
-        public RelayCommand DeleteSongCommand { get; private set; }
+        public RelayCommand? DeleteSongCommand { get; private set; }
 
-        public RelayCommand RemoveNextCommand { get; private set; }
+        public RelayCommand? RemoveNextCommand { get; private set; }
 
-        public RelayCommand SongDoneCommand { get; private set; }
+        public RelayCommand? SongDoneCommand { get; private set; }
 
-        public RelayCommand LoadCommand { get; private set; }
+        public RelayCommand? LoadCommand { get; private set; }
 
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -85,13 +120,6 @@ namespace Karayote.ViewModels
 
             AddSongCommand = new RelayCommand(execute: async () =>
             {
-                // TODO: move to canExecute eventually
-                if (string.IsNullOrEmpty(SongTitle) || string.IsNullOrEmpty(SingerName))
-                {
-                    MessageBox.Show("Must have a singer name and a song title", "Error");
-                    return;
-                }
-
                 // register a user with karayote or retrieve an existing one
                 KarayoteUser user = karayote.CreateOrFindUser(SingerName);
 
@@ -113,50 +141,45 @@ namespace Karayote.ViewModels
             },
             canExecute: () => 
             {
-                // TODO: make sure there are inputs in both text boxes
-                return true;
+                // Make sure there are inputs in both text boxes
+                return !string.IsNullOrEmpty(SongTitle) && !string.IsNullOrEmpty(SingerName);
             });
 
             DeleteSongCommand = new RelayCommand(execute: async () =>
             {
-                if (SelectedQueueSong is null) return;
-                await karayote.DeleteSong(SelectedQueueSong);
+                await karayote.DeleteSong(SelectedQueueSong!);
                 SelectedQueueSong = null;
             },
             canExecute: () =>
             {
-                // TODO: make sure something is selected
-                return true;
+                // Make sure something is selected
+                return SelectedQueueSong is not null;
             });
 
             RemoveNextCommand = new RelayCommand(execute: async () =>
             {
-                if (string.IsNullOrEmpty(NextUp)) return;
                 await karayote.DeleteSong(songQueue.NextUp!);            
             },
             canExecute: () =>
             {
-                // TODO: make sure there is a NextUp song
-                return true;
+                // Make sure there is a NextUp song
+                return !string.IsNullOrEmpty(NextUp);
             });
 
             SongDoneCommand = new RelayCommand(execute: async () =>
             {
-                if (string.IsNullOrEmpty(NowPlaying)) return;
                 MessageBoxResult sung = MessageBox.Show("Did they actually sing it?", "", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 await karayote.AdvanceQueue(sung == MessageBoxResult.Yes);
             },
             canExecute: () =>
             {
-                // TODO: make sure there is a NextUp song
-                return true;
+                // make sure there is a NowPlaying song
+                return !string.IsNullOrEmpty(NowPlaying);
             });
 
-            LoadCommand = new RelayCommand(execute: async () =>
+            LoadCommand = new RelayCommand(execute: () =>
             {
-                if(string.IsNullOrEmpty(NowPlaying) || songQueue.NowPlaying is PlaceholderSong) return;
-
                 if(songQueue.NowPlaying is KarafunSong)
                 {
                     uint id;
@@ -178,8 +201,8 @@ namespace Karayote.ViewModels
             },
             canExecute: () =>
             {
-                // TODO: If there's a now playing song and a type we have support for loading with the button
-                return true;
+                // Can execute if there's a now playing song and the song is a type we have support for loading with the button
+                return !string.IsNullOrEmpty(NowPlaying) && songQueue.NowPlaying is not PlaceholderSong;
             });
         }
 
