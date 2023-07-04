@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Threading;
@@ -154,12 +155,26 @@ namespace Karayote.ViewModels
 
             LoadCommand = new RelayCommand(execute: async () =>
             {
-                if(string.IsNullOrEmpty(NowPlaying) || songQueue.NowPlaying is not KarafunSong) return;
+                if(string.IsNullOrEmpty(NowPlaying) || songQueue.NowPlaying is PlaceholderSong) return;
 
-                uint id;
-                uint.TryParse(songQueue.NowPlaying.Id, out id);
+                if(songQueue.NowPlaying is KarafunSong)
+                {
+                    uint id;
+                    uint.TryParse(songQueue.NowPlaying.Id, out id);
 
-                karayote.karafun.AddToQueue(id, singer: songQueue.NowPlaying.User.Name);
+                    karayote.karafun.AddToQueue(id, singer: songQueue.NowPlaying.User.Name);
+                }
+
+                else if (songQueue.NowPlaying is YoutubeSong)
+                {
+                    string targetURL = ((YoutubeSong)songQueue.NowPlaying).Link;
+                    ProcessStartInfo psi = new ProcessStartInfo
+                    {
+                        FileName = targetURL,
+                        UseShellExecute = true
+                    };
+                    Process.Start(psi);
+                }                
             },
             canExecute: () =>
             {

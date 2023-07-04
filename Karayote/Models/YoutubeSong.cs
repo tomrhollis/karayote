@@ -24,7 +24,7 @@ namespace Karayote.Models
         /// <summary>
         /// Get a link to this song on YouTube
         /// </summary>
-        public string Link => $"https://www.youtube.com/watch?v={Id}";
+        public string Link => $"https://www.youtube.com/embed/{Id}?autoplay=0&rel=0&loop=0";
 
         /// <summary>
         /// String representation for the UI, with type info

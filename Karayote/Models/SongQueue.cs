@@ -99,7 +99,7 @@ namespace Karayote.Models
             }
             
             // send log message to console and messengers as backups in case DB restore fails or not implemeneted yet
-            string logOutput = $"[{DateTime.Now.ToLocalTime().ToShortTimeString()}] New add: {song.UIString}";
+            string logOutput = $"New add: {song.UIString}";
             if (song is YoutubeSong)
                 logOutput += $" {((YoutubeSong)song).Link}";            
             await botifex.LogAll(logOutput);
