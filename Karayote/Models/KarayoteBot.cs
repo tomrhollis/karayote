@@ -133,13 +133,13 @@ namespace Karayote.Models
                     new CommandField
                     {
                         Name = "song1",
-                        Description = "the first song's number in your list",
+                        Description = "one song's number from /mysongs",
                         Required = true
                     },
                     new CommandField
                     {
                         Name = "song2",
-                        Description = "the second song's number in your list",
+                        Description = "another song's number from /mysongs",
                         Required = true
                     }
                 }
@@ -339,8 +339,8 @@ namespace Karayote.Models
 
                         // make sure it's a reasonable length
                         int durationMins = int.Parse(Regex.Match(ytVideos.Items[0].ContentDetails.Duration.Split("M")[0], "[\\d]{1,2}$").Value); // exception if less than a min
-                        log.LogDebug(durationMins.ToString());
-                        if (durationMins < 10 && durationMins > 0)
+                        
+                        if (durationMins < 10 && durationMins > 0 && !ytVideos.Items[0].ContentDetails.Duration.Contains('H'))
                         {
                             song.Video = ytVideos.Items[0];
                             log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
@@ -400,7 +400,7 @@ namespace Karayote.Models
                         }
 
                         else
-                            response = DeleteSong(user, position) + "\n\n" + GetMySongs(user);
+                            response = (await DeleteSong(user, position)) + "\n\n" + GetMySongs(user);
                     }
                     catch (Exception ex) when (ex is ArgumentNullException or FormatException or OverflowException)
                     {
@@ -597,7 +597,7 @@ namespace Karayote.Models
             }
             else // this needs to be fleshed out
             {
-                await interaction.Reply($"The queue has closed for now, but I have not been programmed to know why in this case");
+                await interaction.Reply($"The queue has closed for now");
             }
         }
 
@@ -675,7 +675,7 @@ namespace Karayote.Models
                 case "confirmdelete":
                     int position = int.Parse(e.Interaction.CommandFields["songnumber"]);
                     if (e.Reply == "✅")
-                        response = DeleteSong(user, position) + "\n\n" + GetMySongs(user);
+                        response = (await DeleteSong(user, position)) + "\n\n" + GetMySongs(user);
                     else
                         response = "OK, nevermind!";
                     break;

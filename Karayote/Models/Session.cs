@@ -152,7 +152,7 @@ namespace Karayote.Models
             }
 
             // when the song is in the user's reserve
-            else if (position > 1 && position - 1 < KarayoteUser.MAX_RESERVED_SONGS)
+            else if (position > 1 && position - 1 <= KarayoteUser.MAX_RESERVED_SONGS)
                 removedSong = user.RemoveReservedSong(position - 2);
 
             // if it worked, clean the song out of the song history for this session so it can be selected again (unless it was actually sung already)

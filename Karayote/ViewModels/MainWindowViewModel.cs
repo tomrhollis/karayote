@@ -168,17 +168,29 @@ namespace Karayote.ViewModels
 
             SongDoneCommand = new RelayCommand(execute: async () =>
             {
+                if (!karayote.currentSession.IsStarted) // TODO: cause session updates to also update UI so button isn't enabled until start
+                {
+                    MessageBox.Show("The session hasn't started yet", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
                 MessageBoxResult sung = MessageBox.Show("Did they actually sing it?", "", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 await karayote.AdvanceQueue(sung == MessageBoxResult.Yes);
             },
             canExecute: () =>
             {
                 // make sure there is a NowPlaying song
-                return !string.IsNullOrEmpty(NowPlaying) && karayote.currentSession.IsStarted;
+                return !string.IsNullOrEmpty(NowPlaying);
             });
 
             LoadCommand = new RelayCommand(execute: () =>
             {
+                if (!karayote.currentSession.IsStarted) // TODO: cause session updates to also update UI so button isn't enabled until start
+                { 
+                    MessageBox.Show("The session hasn't started yet", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
                 if(songQueue.NowPlaying is KarafunSong)
                 {
                     uint id;
@@ -201,7 +213,7 @@ namespace Karayote.ViewModels
             canExecute: () =>
             {
                 // Can execute if there's a now playing song and the song is a type we have support for loading with the button
-                return !string.IsNullOrEmpty(NowPlaying) && songQueue.NowPlaying is not PlaceholderSong && karayote.currentSession.IsStarted;
+                return !string.IsNullOrEmpty(NowPlaying) && songQueue.NowPlaying is not PlaceholderSong;
             });
         }
 
