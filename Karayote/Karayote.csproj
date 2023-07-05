@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <StartupObject>Karayote.App</StartupObject>
+    <Version>1.0.0</Version>
+    <Authors>Tom Hollis</Authors>
   </PropertyGroup>
 
   <ItemGroup>
