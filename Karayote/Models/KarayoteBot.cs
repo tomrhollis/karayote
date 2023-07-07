@@ -1,7 +1,6 @@
 ﻿using Botifex;
 using Botifex.Services;
 using Botifex.Services.TelegramBot;
-using Botifex.Services.Discord;
 using KarafunAPI;
 using KarafunAPI.Models;
 using Microsoft.Extensions.Configuration;
@@ -29,6 +28,7 @@ namespace Karayote.Models
         private ILogger<KarayoteBot> log;
         private IBotifex botifex;
         internal IKarafun karafun;
+        private IConfiguration config;
         private YouTubeService youtube;
         internal Session currentSession;
         private List<KarayoteUser> knownUsers = new List<KarayoteUser>();
@@ -47,6 +47,7 @@ namespace Karayote.Models
             this.log = log;
             this.botifex = botifex;
             karafun = karApi;
+            config = cfg;
 
             youtube = new YouTubeService(new BaseClientService.Initializer()
             {
@@ -174,6 +175,46 @@ namespace Karayote.Models
                 Name = "usewaitinglist",
                 Description = "Add a song from the waiting list"
             });
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
+            {
+                Name = "searchforuser",
+                Description = "Search karafun for a user",
+                Options = new List<CommandField> 
+                {
+                    new CommandField
+                    {
+                        Name = "singer",
+                        Description = "the person who wants to sing",
+                        Required = true
+                    },
+                    new CommandField
+                    {
+                        Name = "terms",
+                        Description = "the name and/or artist of the song to search for",
+                        Required = true
+                    }
+                }
+            });
+            botifex.AddCommand(new SlashCommand(adminOnly: true)
+            {
+                Name = "youtubeforuser",
+                Description = "Add YouTube for a user",
+                Options = new List<CommandField>
+                {
+                    new CommandField
+                    {
+                        Name = "singer",
+                        Description = "the person who wants to sing",
+                        Required = true
+                    },
+                    new CommandField
+                    {
+                        Name = "video",
+                        Description = "the YouTube link or 11-character video id",
+                        Required = true
+                    }
+                }
+            });
 
             // register handlers for different messenger input types
             botifex.RegisterTextHandler(ProcessText);
@@ -193,6 +234,7 @@ namespace Karayote.Models
         public Task StartAsync(CancellationToken cancellationToken) // not actually async due to lack of need, but that's the interface signature
         {
             log.LogDebug("StartAsync has been called.");
+            //botifex.LogAll("Yip Yip");
             //karafun.OnStatusUpdated += KarafunStatusUpdate;
             return Task.CompletedTask;
         }
@@ -206,6 +248,7 @@ namespace Karayote.Models
         {
             currentSession.End();
             log.LogDebug("StopAsync has been called.");
+            botifex.LogAll("Awoooo....");
             return Task.CompletedTask;
         }
 
@@ -218,6 +261,7 @@ namespace Karayote.Models
         {
             KarayoteUser user = CreateOrFindUser(e.Interaction.User!); // make sure we keep track of which user this is
             ICommandInteraction interaction = (ICommandInteraction)e.Interaction;
+            string response = "";
 #if DEBUG
             log.LogDebug($"[{DateTime.Now}] Karayote got {interaction.BotifexCommand.Name} from {sender?.GetType()}");
 #endif
@@ -225,36 +269,7 @@ namespace Karayote.Models
             {
                 // searching Karafun for a specific song
                 case "search":
-                    if (currentSession.IsOpen)
-                    {
-                        await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}"); // let user know we're doing things
-                        karafun.Search(new Action<List<Song>>(async (foundSongs) =>
-                        {
-                            if (foundSongs is null || foundSongs.Count == 0)
-                            {
-                                await ((Interaction)interaction).Reply("No songs like that found in the Karafun catalog");
-                                await interaction.End();
-                                return;
-                            }
-                            // build a dictionary for the menu to work with: a pair of song ID and its description string
-                            Dictionary<string, string> results = new Dictionary<string, string>();
-                            for (int i = 0; i < foundSongs.Count; i++)
-                            {
-                                knownSongs.Add(foundSongs[i]);
-                                results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}");
-                            }
-                            // make the menu and send it
-                            ReplyMenu menu = new ReplyMenu("chosensong", results, ProcessMenuReply);
-                            await ((Interaction)interaction).ReplyWithOptions(menu, "Pick a song to add yourself to the queue");
-
-                        }), interaction.CommandFields["terms"]);
-                    }
-                    // notify if the session isn't open to searching and queueing yet
-                    else
-                    {
-                        await NoSessionReply(interaction);
-                        await interaction.End();
-                    }
+                    await SearchKarafun(interaction);
                     break;
 
                 // see the current song queue if the session is open
@@ -305,7 +320,7 @@ namespace Karayote.Models
                     else
                     {
                         currentSession.Open();
-                        await botifex.SendOneTimeStatusUpdate("You can now search and add songs to the queue while waiting for singing to start! DM me (the bot) to make your selections and get in line.", notification: false);
+                        await botifex.SendOneTimeStatusUpdate("You can now search and add songs to the queue while waiting for singing to start! DM me (the bot) to make your selections and get in line.", notification: true);
                         await interaction.Reply("The session is now open for searching and queueing.");
                         await KarayoteStatusUpdate();
                     }
@@ -314,57 +329,7 @@ namespace Karayote.Models
 
                 // select a youtube video as a song request
                 case "youtube":
-                    if (!currentSession.IsOpen)
-                    {
-                        await NoSessionReply(interaction);
-                        break;
-                    }
-
-                    Uri? youtubeLink = null;
-                    YoutubeSong? song = null;
-                    string response = "";
-                    try // the parse or if-else might fail if they put in some crappy text
-                    {
-                        // see if it's a real address or not
-                        Uri.TryCreate(interaction.CommandFields["video"], new UriCreationOptions(), out youtubeLink);
-
-                        if (youtubeLink is not null)
-                            song = new YoutubeSong(youtubeLink, user); // constructor for addresses
-                        else
-                            song = new YoutubeSong(interaction.CommandFields["video"], user); // constructor for presumed IDs
-
-                        VideosResource.ListRequest listRequest = youtube.Videos.List("snippet,contentDetails");
-                        listRequest.Id = song.Id;
-                        VideoListResponse ytVideos = listRequest.Execute();
-
-                        // make sure it's a reasonable length
-                        int durationMins = int.Parse(Regex.Match(ytVideos.Items[0].ContentDetails.Duration.Split("M")[0], "[\\d]{1,2}$").Value); // exception if less than a min
-                        
-                        if (durationMins < 10 && durationMins > 0 && !ytVideos.Items[0].ContentDetails.Duration.Contains('H'))
-                        {
-                            song.Video = ytVideos.Items[0];
-                            log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
-
-                            response = await TryAddSong(song);
-                            response += "\n\n" + GetMySongs(user);
-                        }
-                        else
-                            response = $"No can do, a Youtube video has to be less than 10 minutes long.";
-                    }
-                    catch (FormatException)
-                    {
-                        response = $"That's either a stream or less than a minute long. Nice try!";
-                    }
-                    catch (ArgumentOutOfRangeException)
-                    {
-                        response = "Couldn't find a YouTube video with that ID";
-                    }
-                    catch (ArgumentException)
-                    {
-                        response = "Couldn't find a YouTube video link or ID in what you entered. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
-                    }
-                    await interaction.Reply(response);
-                    await interaction.End();
+                    await AddYoutube(interaction, user);
                     break;
 
                 // retrieve a list of a user's queued and reserved songs for this sesssion
@@ -458,7 +423,8 @@ namespace Karayote.Models
                     if (!currentSession.IsStarted && !currentSession.IsOver) // make sure this hasn't already been done
                     {
                         currentSession.Start();
-                        await botifex.ReplaceStatusMessage("And the singing starts.... NOW!");
+                        await botifex.SendOneTimeStatusUpdate("And the singing starts.... NOW!", notification: true);
+                        await botifex.ReplaceStatusMessage("");
                         await SendSingerNotifications();
                         response = "The queue is now flowing!";
                     }
@@ -511,9 +477,119 @@ namespace Karayote.Models
                     await interaction.End();
                     break;
 
+                case "searchforuser":
+                    await SearchKarafun(interaction);
+                    break;
+
+                case "youtubeforuser":
+                    KarayoteUser placeholderUser = CreateOrFindUser(interaction.CommandFields["singer"]);
+                    await AddYoutube(interaction, placeholderUser);
+                    break;
+
                 default:
                     break;
             }
+        }
+
+        /// <summary>
+        /// Search karafun based on submitted 
+        /// </summary>
+        /// <param name="interaction"></param>
+        /// <returns></returns>
+        private async Task SearchKarafun(ICommandInteraction interaction)
+        {
+            if (currentSession.IsOpen)
+            {
+                await interaction.Reply($"Searching Karafun catalog for {interaction.CommandFields["terms"]}"); // let user know we're doing things
+                karafun.Search(new Action<List<Song>>(async (foundSongs) =>
+                {
+                    if (foundSongs is null || foundSongs.Count == 0)
+                    {
+                        await ((Interaction)interaction).Reply("No songs like that found in the Karafun catalog");
+                        await interaction.End();
+                        return;
+                    }
+                    // build a dictionary for the menu to work with: a pair of song ID and its description string
+                    Dictionary<string, string> results = new Dictionary<string, string>();
+                    for (int i = 0; i < foundSongs.Count; i++)
+                    {
+                        knownSongs.Add(foundSongs[i]);
+                        results.Add($"{foundSongs[i].Id}", $"{foundSongs[i]}");
+                    }
+                    // make the menu and send it
+                    ReplyMenu menu = new ReplyMenu("chosensong", results, ProcessMenuReply);
+                    await ((Interaction)interaction).ReplyWithOptions(menu, "Pick a song to add yourself to the queue");
+
+                }), interaction.CommandFields["terms"]);
+            }
+            // notify if the session isn't open to searching and queueing yet
+            else
+            {
+                await NoSessionReply(interaction);
+                await interaction.End();
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="interaction"></param>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        private async Task AddYoutube(ICommandInteraction interaction, KarayoteUser user)
+        {
+            if (!currentSession.IsOpen)
+            {
+                await NoSessionReply(interaction);
+                return;
+            }
+
+            Uri? youtubeLink = null;
+            YoutubeSong? song = null;
+            string response = "";
+
+            try // the parse or if-else might fail if they put in some crappy text
+            {
+                // see if it's a real address or not
+                Uri.TryCreate(interaction.CommandFields["video"], new UriCreationOptions(), out youtubeLink);
+
+                if (youtubeLink is not null)
+                    song = new YoutubeSong(youtubeLink, user); // constructor for addresses
+                else
+                    song = new YoutubeSong(interaction.CommandFields["video"], user); // constructor for presumed IDs
+
+                VideosResource.ListRequest listRequest = youtube.Videos.List("snippet,contentDetails");
+                listRequest.Id = song.Id;
+                VideoListResponse ytVideos = listRequest.Execute();
+
+                // make sure it's a reasonable length
+                int durationMins = int.Parse(Regex.Match(ytVideos.Items[0].ContentDetails.Duration.Split("M")[0], "[\\d]{1,2}$").Value); // exception if less than a min
+
+                if (durationMins < 10 && durationMins > 0 && !ytVideos.Items[0].ContentDetails.Duration.Contains('H'))
+                {
+                    song.Video = ytVideos.Items[0];
+                    log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
+
+                    response = await TryAddSong(song);
+                    response += "\n\n" + GetMySongs(user);
+                }
+                else
+                    response = $"No can do, a Youtube video has to be less than 10 minutes long.";
+            }
+            catch (FormatException)
+            {
+                response = $"That's either a stream or less than a minute long. Nice try!";
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                response = "Couldn't find a YouTube video with that ID";
+            }
+            catch (ArgumentException)
+            {
+                response = "Couldn't find a YouTube video link or ID in what you entered. Make sure you copy links directly from the video, or if you're using an id that it's 11 characters long, no more no less";
+            }
+            await interaction.Reply(response);
+            await interaction.End();
         }
 
         /// <summary>
@@ -632,7 +708,11 @@ namespace Karayote.Models
             // if this is a /start command from interacting with the telegram bot for the first time
             if (interaction is TelegramTextInteraction && interaction.Text == "/start")
             {
-                reply = "Hey there! Check out the menu button at the bottom to see your options, or type /help for more information.\n\nJoin https://t.me/+IvgdfqSY2MwxNTZh to see tonight's song history and a constantly updated queue";
+                reply = "Hey there! Check out the menu button at the bottom to see your options, or type /help for more information.";
+
+                string inviteLink = config.GetSection("Telegram")?.GetValue<string>("TelegramStatusChannelInvite") ?? "";
+                if (!string.IsNullOrEmpty(inviteLink))
+                    reply += $"\n\nJoin {inviteLink} to see tonight's song history and a constantly updated queue";
             }
             // otherwise just tell them to use a command
             else
@@ -654,6 +734,7 @@ namespace Karayote.Models
             if (sender is null) throw new ArgumentException(); // need a sender to know what kind of menu this is
 
             ReplyMenu menu = (ReplyMenu)sender!;
+            ICommandInteraction interaction = (ICommandInteraction)e.Interaction;
             KarayoteUser user = CreateOrFindUser(e.Interaction.User!); // should be finding not creating if we're at this point
             string response = "";
 
@@ -662,6 +743,9 @@ namespace Karayote.Models
                 // menu options for choosing a song that was returned from a karafun search
                 case "chosensong":
                     Song chosenSong = knownSongs.First(s => s.Id == uint.Parse(e.Reply));
+
+                    if (interaction.BotifexCommand.Name == "searchforuser")
+                        user = CreateOrFindUser(interaction.CommandFields["singer"]);
 
                     KarafunSong karafunSong = new KarafunSong(chosenSong, user);
 #if DEBUG

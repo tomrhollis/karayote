@@ -62,11 +62,7 @@ namespace Karayote
         public async void Application_Exit(object sender, EventArgs e)
         {
             await host.StopAsync(TimeSpan.FromSeconds(10));
-        }
-
-        private void Application_Startup_1(object sender, StartupEventArgs e)
-        {
-
+            host.WaitForShutdown();
         }
     }
 }

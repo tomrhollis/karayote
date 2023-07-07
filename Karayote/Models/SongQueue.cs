@@ -97,11 +97,18 @@ namespace Karayote.Models
             {
                 TheQueue.Add(song);
             }
-            
+
             // send log message to console and messengers as backups in case DB restore fails or not implemeneted yet
-            string logOutput = $"New add: {song.UIString}";
+            string logOutput = $"New add: ";
+
+            if (song.User.BotUser is not null && song.User.BotUser.At is not null)
+                logOutput += $" {song.User.BotUser.At} ";
+
+            logOutput += $"{song.UIString}";
+
             if (song is YoutubeSong)
-                logOutput += $" {((YoutubeSong)song).Link}";            
+                logOutput += $" {((YoutubeSong)song).Link}";   
+
             await botifex.LogAll(logOutput);
         }
 
