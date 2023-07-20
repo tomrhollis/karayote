@@ -87,7 +87,9 @@ namespace Karayote.Models
                 Name = "openqueue",
                 Description = "Open the session for searching and queueing"
             });
+#if !DEBUG
             if (cfg.GetValue<bool>("AllowGetID"))
+#endif
                 botifex.AddCommand(new SlashCommand(adminOnly: true)
                 {
                     Name = "getid",
@@ -220,6 +222,7 @@ namespace Karayote.Models
             // register handlers for different messenger input types
             botifex.RegisterTextHandler(ProcessText);
             botifex.RegisterCommandHandler(ProcessCommand);
+            botifex.RegisterUserUpdateHandler(UpdateUser);
 #if DEBUG
             log.LogDebug("Karayote Constructor ran");
 #endif
@@ -249,6 +252,20 @@ namespace Karayote.Models
             currentSession.End();
             log.LogDebug("StopAsync has been called.");
             await botifex.LogAll("Awoooo....");
+        }
+
+
+        private async void UpdateUser(object sender, UserUpdateEventArgs e)
+        {
+            int index = knownUsers.FindIndex(u => u.BotUser?.Guid == e.User.Guid);
+            if(index >=0)
+            {
+#if DEBUG
+                log.LogDebug("Updating user " + knownUsers[index].Name);
+#endif
+                knownUsers[index].BotUser = e.User;
+                await KarayoteStatusUpdate();
+            }
         }
 
         /// <summary>
@@ -932,6 +949,8 @@ namespace Karayote.Models
             await KarayoteStatusUpdate();       // update status posts
             await SendSingerNotifications();    // notify next 2 singers
         }
+
+
     }
 }
 

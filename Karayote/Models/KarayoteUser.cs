@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Windows.Navigation;
 
 namespace Karayote.Models
 {
@@ -16,18 +17,19 @@ namespace Karayote.Models
         [Key]
         internal string Id { get; private set; }
 
+        private string name = string.Empty;
         /// <summary>
         /// The name of this user as we know it
         /// </summary>
-        internal string Name { get; private set; } = string.Empty;
+        internal string Name => (BotUser is null ? name : BotUser.UserName);
 
         /// <summary>
         /// The number of songs they are holding in reserve currently
         /// </summary>
         internal int ReservedSongCount { get => reservedSongs.Count; }
 
-        internal BotifexUser? BotUser { get; private set; } = null;
-        private List<SelectedSong> reservedSongs { get; set; }
+        internal BotifexUser? BotUser { get; set; } = null;
+        private List<SelectedSong> reservedSongs { get; set; } = new List<SelectedSong>();
         private readonly object _lock = new object(); // primitive thread safety but more flexibility needed than modern options allow
 
         internal static readonly int MAX_RESERVED_SONGS = 2;
@@ -40,8 +42,6 @@ namespace Karayote.Models
         {
             Id = botifexUser.Guid.ToString(); // for now
             BotUser = botifexUser;
-            Name = botifexUser.UserName;
-            reservedSongs = new List<SelectedSong>();
         }
 
         /// <summary>
@@ -50,9 +50,8 @@ namespace Karayote.Models
         /// <param name="name">The <see cref="string"/> text of a username</param>
         internal KarayoteUser(string name)
         {
-            reservedSongs = new List<SelectedSong>();
             Id = Guid.NewGuid().ToString();
-            Name = name;
+            this.name = name;
         }
 
         /// <summary>
