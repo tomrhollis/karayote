@@ -1,6 +1,7 @@
 ﻿using Botifex;
 using Botifex.Services;
 using Botifex.Services.TelegramBot;
+using Botifex.Services.Discord;
 using KarafunAPI;
 using KarafunAPI.Models;
 using Microsoft.Extensions.Configuration;
@@ -219,11 +220,10 @@ namespace Karayote.Models
             // register handlers for different messenger input types
             botifex.RegisterTextHandler(ProcessText);
             botifex.RegisterCommandHandler(ProcessCommand);
-
+#if DEBUG
             log.LogDebug("Karayote Constructor ran");
+#endif
             currentSession = host.Services.GetRequiredService<Session>();
-            /*window = host.Services.GetRequiredService<MainWindow>();
-            window.Show();*/
         }
 
         /// <summary>
@@ -244,12 +244,11 @@ namespace Karayote.Models
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
         /// <returns><see cref="Task.CompletedTask"/></returns>
-        public Task StopAsync(CancellationToken cancellationToken) // not actually async due to lack of need, but that's the interface signature
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             currentSession.End();
             log.LogDebug("StopAsync has been called.");
-            botifex.LogAll("Awoooo....");
-            return Task.CompletedTask;
+            await botifex.LogAll("Awoooo....");
         }
 
         /// <summary>
@@ -276,7 +275,17 @@ namespace Karayote.Models
                 case "seequeue":
                     if (currentSession.IsOpen || currentSession.IsStarted)
                     {
-                        await interaction.Reply(currentSession.SongQueue.ToString()+"\n\nJoin https://t.me/+IvgdfqSY2MwxNTZh to see tonight's song history and a constantly updated queue");
+                        // see if there's a status group people can join and if so append a message about it to the response
+                        string groupUrl = string.Empty;
+
+                        if (interaction is TelegramInteraction)
+                            groupUrl = config.GetSection("Telegram").GetValue<string>("TelegramStatusChannelInvite") ?? string.Empty;
+                        
+                        else if (interaction is DiscordInteraction)
+                            groupUrl = config.GetSection("Discord").GetValue<string>("DiscordStatusChannelInvite") ?? string.Empty;
+                        
+                        response = string.IsNullOrEmpty(groupUrl) ? string.Empty : $"\n\nJoin {groupUrl} to see tonight's song history and a constantly updated queue";
+                        await interaction.Reply(currentSession.SongQueue.ToString() + response);
                     }
                     else
                         await NoSessionReply(interaction);
