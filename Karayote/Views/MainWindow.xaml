@@ -15,7 +15,7 @@
         <!-- left side (now and next) -->
         <StackPanel Width="316">
             <!-- now -->
-            <StackPanel Height="69" Width="293" Margin="0,40,0,0">                
+            <StackPanel Height="69" Width="293" Margin="0,40,0,0">
                 <Label>
                     Now Playing
                 </Label>
@@ -38,12 +38,8 @@
                             Command="{Binding SongDoneCommand}">
                         Done
                     </Button>
-                    <!--<Button Grid.Column="1" HorizontalAlignment="Center" Width="50" Command="{Binding SongReplaceCommand}">Replace</Button>-->
-                    
                 </Grid>
-                    
-                
-            </StackPanel>            
+            </StackPanel>
             <!-- next -->
             <StackPanel Height="69" Width="293" Margin="0,40,0,0">                
                 <Label>
@@ -53,6 +49,7 @@
                 <Button Width="50" HorizontalAlignment="Left" Command="{Binding RemoveNextCommand}">Remove</Button>
             </StackPanel>
         </StackPanel>
+        
         <!-- middle panel: queue -->
         <StackPanel Orientation="Vertical" Width="336">            
             <Label FontSize="14" Width="284" Content="The Queue"/>
@@ -72,6 +69,7 @@
             </ListBox>
             <Button Width="50" Content="Delete" Command="{Binding DeleteSongCommand}"/>
         </StackPanel>
+        
         <!-- right panel: add song -->
         <StackPanel Orientation="Vertical" Width="244">            
             <Label FontSize="14">

@@ -5,6 +5,7 @@ namespace KarafunAPI.Models
     /// <summary>
     /// Represents the volumeList in the XML status response from Karafun
     /// </summary>
+    // From the API documentation:
     //  <volumeList>
     //    <general caption = "{caption}" >{volume}</ general >
     //    [< bv caption = "{caption}" >{ volume}</ bv >]

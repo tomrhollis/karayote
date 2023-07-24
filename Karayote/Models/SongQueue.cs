@@ -23,6 +23,9 @@ namespace Karayote.Models
         public int Id { get; set; }
 
         public int SessionId { get; set; }
+        /// <summary>
+        /// The <see cref="Karayote.Models.Session"/> using this queue
+        /// </summary>
         public Session Session { get; set; }
 
 

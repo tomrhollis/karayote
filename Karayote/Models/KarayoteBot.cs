@@ -237,8 +237,6 @@ namespace Karayote.Models
         public Task StartAsync(CancellationToken cancellationToken) // not actually async due to lack of need, but that's the interface signature
         {
             log.LogDebug("StartAsync has been called.");
-            //botifex.LogAll("Yip Yip");
-            //karafun.OnStatusUpdated += KarafunStatusUpdate;
             return Task.CompletedTask;
         }
 
@@ -247,15 +245,19 @@ namespace Karayote.Models
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
         /// <returns><see cref="Task.CompletedTask"/></returns>
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync(CancellationToken cancellationToken) // not actually async due to lack of need, but that's the interface signature
         {
             currentSession.End();
             log.LogDebug("StopAsync has been called.");
-            await botifex.LogAll("Awoooo....");
+            return Task.CompletedTask;
         }
 
-
-        private async void UpdateUser(object sender, UserUpdateEventArgs e)
+        /// <summary>
+        /// Update the name of a user if they changed it in their messaging app
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private async void UpdateUser(object? sender, UserUpdateEventArgs e)
         {
             int index = knownUsers.FindIndex(u => u.BotUser?.Guid == e.User.Guid);
             if(index >=0)
@@ -326,10 +328,12 @@ namespace Karayote.Models
 
                 // open the session to searching and queueing
                 case "openqueue":
+
                     if (currentSession.IsOpen || currentSession.IsStarted) // remove isstarted when all the proper checks are in place for reopening
                     {
                         await interaction.Reply("You already did that silly");
                     }
+
                     // karafun must be operational to open a session
                     else if (karafun.Status is null)
                     {
@@ -342,6 +346,7 @@ namespace Karayote.Models
                         currentSession.Reopen();
                         await interaction.Reply("Reopened the queue to submissions");
                     }*/
+
                     // open the session
                     else
                     {
@@ -350,6 +355,7 @@ namespace Karayote.Models
                         await interaction.Reply("The session is now open for searching and queueing.");
                         await KarayoteStatusUpdate();
                     }
+
                     await interaction.End();
                     break;
 
@@ -433,6 +439,7 @@ namespace Karayote.Models
                     await interaction.End();
                     break;
 
+                // display instructions to the user
                 case "help":
                     response = "How to use this bot:\n\n" +
                                "Before the event, you can search the catalog using the link from /karafunlink, or search youtube for ideas\n\n" +
@@ -444,6 +451,7 @@ namespace Karayote.Models
                     await interaction.End();
                     break;
 
+                // signal that it's time to start singing songs
                 case "startsession":
                     response = "This session was already started";
                     if (!currentSession.IsStarted && !currentSession.IsOver) // make sure this hasn't already been done
@@ -458,6 +466,7 @@ namespace Karayote.Models
                     await interaction.End();
                     break;
 
+                // move to the next song (and assume it was sung) - this should ideally be done in the UI where you can select whether it was sung or not
                 case "nextsong":
                     response = "We're not singing right now";
                     if (currentSession.IsStarted && !currentSession.IsOver && currentSession.SongQueue.Count > 0) // only if the queue is moving right now
@@ -469,12 +478,14 @@ namespace Karayote.Models
                     await interaction.End();
                     break;
 
+                // disallow further additions to the queue
                 case "closequeue":
                     currentSession.Close();
                     await interaction.Reply("Queue closed to new additions");
                     await interaction.End();
                     break;
 
+                // signal that we're done singing for today
                 case "endsession":
                     currentSession.End();
                     await interaction.Reply("Session closed. Have a good night!");
@@ -482,6 +493,7 @@ namespace Karayote.Models
                     await interaction.End();
                     break;
 
+                // allow a song in from the waiting list (not yet implemented)
                 case "usewaitinglist":
                     response = "There isn't a waiting list right now";/*
                     if (!currentSession.IsOpen && currentSession.HasWaitingList) // check if this command is even relevant. If the queue is still open or the list is empty, nothing to do.
@@ -503,10 +515,12 @@ namespace Karayote.Models
                     await interaction.End();
                     break;
 
+                // admin command to search for and add a karafun song on behalf of a user who handed the host a paper slip
                 case "searchforuser":
                     await SearchKarafun(interaction);
                     break;
 
+                // admin command to add a youtube song on behalf of a user who handed the host a paper slip
                 case "youtubeforuser":
                     KarayoteUser placeholderUser = CreateOrFindUser(interaction.CommandFields["singer"]);
                     await AddYoutube(interaction, placeholderUser);
@@ -518,10 +532,10 @@ namespace Karayote.Models
         }
 
         /// <summary>
-        /// Search karafun based on submitted 
+        /// Search karafun based on submitted terms
         /// </summary>
-        /// <param name="interaction"></param>
-        /// <returns></returns>
+        /// <param name="interaction">The <see cref="ICommandInteraction"/> containing the search request</param>
+        /// <returns><see cref="Task.CompletedTask"/></returns>
         private async Task SearchKarafun(ICommandInteraction interaction)
         {
             if (currentSession.IsOpen)
@@ -557,14 +571,14 @@ namespace Karayote.Models
         }
 
         /// <summary>
-        /// 
+        /// Add a youtube song
         /// </summary>
-        /// <param name="interaction"></param>
-        /// <param name="user"></param>
-        /// <returns></returns>
+        /// <param name="interaction">The <see cref="ICommandInteraction"/> containing the search request</param>
+        /// <param name="user">The <see cref="KarayoteUser"/> who will own this request (may be different from the one in the interaction)</param>
+        /// <returns><see cref="Task.CompletedTask"/></returns>
         private async Task AddYoutube(ICommandInteraction interaction, KarayoteUser user)
         {
-            if (!currentSession.IsOpen)
+            if (!currentSession.IsOpen) // fail if the session isn't open to queue adds
             {
                 await NoSessionReply(interaction);
                 return;
@@ -588,21 +602,23 @@ namespace Karayote.Models
                 listRequest.Id = song.Id;
                 VideoListResponse ytVideos = listRequest.Execute();
 
-                // make sure it's a reasonable length
+                // find minute length by checking the two digit number after any M (for minutes) in the duration string
                 int durationMins = int.Parse(Regex.Match(ytVideos.Items[0].ContentDetails.Duration.Split("M")[0], "[\\d]{1,2}$").Value); // exception if less than a min
 
+                // if minutes are less than 10 and the duration string doesn't contain an H (for hours), then it's a good length
                 if (durationMins < 10 && durationMins > 0 && !ytVideos.Items[0].ContentDetails.Duration.Contains('H'))
                 {
                     song.Video = ytVideos.Items[0];
+#if DEBUG
                     log.LogDebug($"[{DateTime.Now}] Got request for video id {song.Id} from {user.Name} with id {user.Id}");
-
+#endif
                     response = await TryAddSong(song);
                     response += "\n\n" + GetMySongs(user);
                 }
                 else
                     response = $"No can do, a Youtube video has to be less than 10 minutes long.";
             }
-            catch (FormatException)
+            catch (FormatException) // this will trip when there's no "M" in the duration string
             {
                 response = $"That's either a stream or less than a minute long. Nice try!";
             }
@@ -736,15 +752,15 @@ namespace Karayote.Models
             {
                 reply = "Hey there! Check out the menu button at the bottom to see your options, or type /help for more information.";
 
+                // add the telegram group invite link to the message if one exists in the config file
                 string inviteLink = config.GetSection("Telegram")?.GetValue<string>("TelegramStatusChannelInvite") ?? "";
                 if (!string.IsNullOrEmpty(inviteLink))
                     reply += $"\n\nJoin {inviteLink} to see tonight's song history and a constantly updated queue";
             }
             // otherwise just tell them to use a command
             else
-            {
                 reply = "Oh hi! Please use a slash command to make a request.";
-            }
+
             await interaction.Reply(reply);
             await interaction.End();
         }
@@ -770,7 +786,7 @@ namespace Karayote.Models
                 case "chosensong":
                     Song chosenSong = knownSongs.First(s => s.Id == uint.Parse(e.Reply));
 
-                    if (interaction.BotifexCommand.Name == "searchforuser")
+                    if (interaction.BotifexCommand.Name == "searchforuser") // create or find user by name only if this is an admin adding it for someone else
                         user = CreateOrFindUser(interaction.CommandFields["singer"]);
 
                     KarafunSong karafunSong = new KarafunSong(chosenSong, user);
@@ -783,9 +799,13 @@ namespace Karayote.Models
 
                 // menu options for confirming deletion of someone's last selected song (losing their spot in the queue)
                 case "confirmdelete":
-                    int position = int.Parse(e.Interaction.CommandFields["songnumber"]);
+                    int position = int.Parse(e.Interaction.CommandFields["songnumber"]); // get the song to delete
+
+                    // they really do want it gone
                     if (e.Reply == "✅")
                         response = (await DeleteSong(user, position)) + "\n\n" + GetMySongs(user);
+
+                    // they changed their mind
                     else
                         response = "OK, nevermind!";
                     break;
@@ -810,31 +830,36 @@ namespace Karayote.Models
                 case Session.SongAddResult.SuccessInQueue:
                     int position = currentSession.SongQueue.Count;
                     response = $"Added {song.Title} to the queue at position {position}";
+
                     if (position == 1)
-                    {
                         response += "\n\n" + (currentSession.IsStarted ? "It's your turn right now! Come on up to the stage!" : "You will be up first! Don't go anywhere");
-                    }
+
                     else if (position == 2)
-                    {
                         response += "\n\n" + (currentSession.IsStarted ? "You are up after this person finishes singing! Don't go anywhere" : "You will be up second! Don't go anywhere");
-                    }
+
                     await KarayoteStatusUpdate();
                     break;
+
                 case Session.SongAddResult.SuccessInReserve:
                     response = $"Added {song.Title} to your reserved songs";
                     break;
+
                 case Session.SongAddResult.UserReserveFull:
                     response = $"Couldn't add {song.Title}, you've already selected 3 songs. You can delete one or select a new one after you sing next";
                     break;
+
                 case Session.SongAddResult.AlreadySelected:
                     response = $"Couldn't add {song.Title}, someone already picked that one today";
                     break;
+
                 case Session.SongAddResult.QueueClosed:
                     response = $"Couldn't add {song.Title}, the queue is closed right now";
                     break;
+
                 case Session.SongAddResult.UnknownFailure:
                     response = $"Couldn't add {song.Title}, but I'm not sure why it didn't work";
                     break;
+
                 default:
                     response = $"Something so unexpected occurred that I have no idea if your song was added or not. Please check using /mysongs and speak with the hosts if it's not there";
                     break;
@@ -949,8 +974,6 @@ namespace Karayote.Models
             await KarayoteStatusUpdate();       // update status posts
             await SendSingerNotifications();    // notify next 2 singers
         }
-
-
     }
 }
 

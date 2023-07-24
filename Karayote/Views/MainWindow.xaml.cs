@@ -15,7 +15,7 @@ namespace Karayote.Views
         {
             InitializeComponent();
             DataContext = host.Services.GetRequiredService<MainWindowViewModel>();
-            this.Closing += ConfirmClose;
+            Closing += ConfirmClose;
         }
 
         /// <summary>

@@ -109,11 +109,10 @@ namespace KarafunAPI
         }
 
         /// <summary>
-        /// Repeatedly ask the websocket server for the status of the Karafun software. Should be called as its own thread.
+        /// Run the task queue, or repeatedly ask the websocket server for the status of the Karafun software. Should be called as its own thread.
         /// </summary>
         private void Listen()
         {
-            // keep asking for updated status every second
             while (!stopping)
             {
                 // if there's stuff in the queue and the server is free, do the next task
@@ -198,6 +197,7 @@ namespace KarafunAPI
             string response = await GetData();
 
             // need to dispose and recreate websocket client to start fresh next request or it will get old data next time (unsure why)
+            // this also makes everything go a lot faster so not complaining
             await karafun.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
             karafun.Dispose();
             karafun = new();           
@@ -216,7 +216,7 @@ namespace KarafunAPI
         /// <param name="noqueue">Omit the queue list from the XML response</param>
         public void GetStatus(Action<Status?> callback, bool noqueue = false)
         {
-            string message = $"<action type=\"getStatus\"{(noqueue ? " noqueue" : "")}></action>";
+            string message = $"<action type=\"getStatus\"{(noqueue ? " noqueue" : "")}></action>"; // build XML request string
 
             requestQueue.Enqueue(new Task(async () =>
             {
@@ -231,7 +231,7 @@ namespace KarafunAPI
         /// <param name="callback">An <see cref="Action"/> which takes a <see cref="List"/> of <see cref="Catalog"/> parameter which will process the list once received</param>
         public void GetCatalogList(Action<List<Catalog>> callback)
         {
-            string message = "<action type=\"getCatalogList\"></action>";
+            string message = "<action type=\"getCatalogList\"></action>"; // build XML request string
 
             requestQueue.Enqueue(new Task(async () =>
             {
@@ -248,7 +248,7 @@ namespace KarafunAPI
         /// <param name="offset">The number of songs to skip</param>
         public void GetList(Action<List<Song>> callback, uint listId, uint limit = 100, uint offset = 0)
         {
-            string message = $"<action type=\"getList\" id=\"{listId}\" offset=\"{ offset}\" limit=\"{limit}\"></action>";
+            string message = $"<action type=\"getList\" id=\"{listId}\" offset=\"{ offset}\" limit=\"{limit}\"></action>"; // build XML request string
 
             requestQueue.Enqueue(new Task(async () =>
             {
@@ -265,7 +265,7 @@ namespace KarafunAPI
         /// <param name="offset">The number of results to skip</param>
         public void Search(Action<List<Song>> callback, string searchString, uint limit = 10, uint offset = 0)
         {
-            string message = $"<action type=\"search\" offset=\"{ offset}\" limit=\"{limit}\">{searchString}</action>";
+            string message = $"<action type=\"search\" offset=\"{ offset}\" limit=\"{limit}\">{searchString}</action>"; // build XML request string
 
             requestQueue.Enqueue(new Task(async () =>
             {
@@ -279,7 +279,7 @@ namespace KarafunAPI
         /// <param name="callback">An <see cref="Action"/> which takes  to process</param>
         public void Play()
         {
-            string message = "<action type=\"play\"></action>";
+            string message = "<action type=\"play\"></action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -291,7 +291,7 @@ namespace KarafunAPI
         /// </summary>
         public void Pause()
         {
-            string message = "<action type=\"pause\"></action>";
+            string message = "<action type=\"pause\"></action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -303,7 +303,7 @@ namespace KarafunAPI
         /// </summary>
         public void Next()
         {
-            string message = "<action type=\"next\"></action>";
+            string message = "<action type=\"next\"></action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -316,7 +316,7 @@ namespace KarafunAPI
         /// <param name="time">The time (in seconds) to move to in the song</param>
         public void Seek(uint time)
         {
-            string message = $"<action type=\"seek\">{time}</action>";
+            string message = $"<action type=\"seek\">{time}</action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -330,7 +330,7 @@ namespace KarafunAPI
         public void Pitch(sbyte pitch)
         {
             pitch = Math.Clamp(pitch, (sbyte)-6, (sbyte)6); // karafun allows shifting 6 notes up and down
-            string message = $"<action type=\"pitch\">{pitch}</action>";
+            string message = $"<action type=\"pitch\">{pitch}</action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -344,7 +344,7 @@ namespace KarafunAPI
         public void Tempo(sbyte tempo)
         {
             tempo = Math.Clamp(tempo, (sbyte)-50, (sbyte)50);
-            string message = $"<action type=\"tempo\">{tempo}</action>";
+            string message = $"<action type=\"tempo\">{tempo}</action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -359,7 +359,7 @@ namespace KarafunAPI
         public void SetVolume(string type, byte level)
         {
             level = Math.Clamp(level, (byte)0, (byte)100);
-            string message = $"<action type=\"setVolume\" volume_type=\"{type}\">{level}</action>";
+            string message = $"<action type=\"setVolume\" volume_type=\"{type}\">{level}</action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -371,7 +371,7 @@ namespace KarafunAPI
         /// </summary>
         public void ClearQueue()
         {
-            string message = "<action type=\"clearQueue\"></action>";
+            string message = "<action type=\"clearQueue\"></action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -387,7 +387,7 @@ namespace KarafunAPI
         public void AddToQueue(uint songId, uint position = 99999, string singer = null)
         {
             position = Math.Clamp(position, 0, 99999);
-            string message = $"<action type=\"addToQueue\" song=\"{songId}\" singer=\"{singer}\">{position}</action>";
+            string message = $"<action type=\"addToQueue\" song=\"{songId}\" singer=\"{singer}\">{position}</action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -401,7 +401,7 @@ namespace KarafunAPI
         public void RemoveFromQueue(uint position)
         {
             position = Math.Clamp(position, 0, 99999);
-            string message = $"<action type=\"removeFromQueue\" id=\"{position}\"></action>";
+            string message = $"<action type=\"removeFromQueue\" id=\"{position}\"></action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));
@@ -417,7 +417,7 @@ namespace KarafunAPI
         {
             oldPosition = Math.Clamp(oldPosition, 0, 99999);
             newPosition = Math.Clamp(newPosition, 0, 99999);
-            string message = $"<action type=\"changeQueuePosition\" id=\"{oldPosition}\">{newPosition}</action>";
+            string message = $"<action type=\"changeQueuePosition\" id=\"{oldPosition}\">{newPosition}</action>"; // build XML request string
             requestQueue.Enqueue(new Task(async () =>
             {
                 Status = new Status(await Request(message));

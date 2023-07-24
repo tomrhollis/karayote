@@ -11,6 +11,9 @@ using System.Windows.Data;
 
 namespace Karayote.ViewModels
 {
+    /// <summary>
+    /// Display data for the main window
+    /// </summary>
     internal class MainWindowViewModel : ObservableObject
     {
         private SongQueue songQueue;
@@ -18,6 +21,10 @@ namespace Karayote.ViewModels
         private static readonly object _lock = new object();
 
         private string nowPlaying;
+        /// <summary>
+        /// The title of the currently playing song.
+        /// This is separated from RemainingQueue because its user will have already been notified that they are singing
+        /// </summary>
         public string NowPlaying 
         {
             get => nowPlaying;
@@ -33,6 +40,10 @@ namespace Karayote.ViewModels
         }
 
         private string nextUp;
+        /// <summary>
+        /// The title of the next song up in the queue
+        /// This is separated from RemainingQueue because its user will have already been notified that they are next
+        /// </summary>
         public string NextUp 
         {
             get => nextUp;
@@ -47,9 +58,15 @@ namespace Karayote.ViewModels
             }
         }
 
+        /// <summary>
+        /// All remaining songs after the current and next up songs, which can be rearranged freely
+        /// </summary>
         public ObservableCollection<SelectedSong> RemainingQueue { get; set; } = new ObservableCollection<SelectedSong>();
 
         private string singerName;
+        /// <summary>
+        /// The name of a singer to add a song for
+        /// </summary>
         public string SingerName
         {
             get => singerName;
@@ -64,6 +81,9 @@ namespace Karayote.ViewModels
         }
 
         private string songTitle;
+        /// <summary>
+        /// Title of a song to add
+        /// </summary>
         public string SongTitle
         {
             get => songTitle;
@@ -78,6 +98,9 @@ namespace Karayote.ViewModels
         }
 
         private SelectedSong? selectedQueueSong;
+        /// <summary>
+        /// The song currently selected in the RemainingQueue list
+        /// </summary>
         public SelectedSong? SelectedQueueSong
         {
             get => selectedQueueSong;
@@ -91,32 +114,51 @@ namespace Karayote.ViewModels
             }
         }
 
+        /// <summary>
+        /// The index of the song currently selected in the RemainingQueue list
+        /// </summary>
         public int SelectedIndex { get; set; }
         
+        /// <summary>
+        /// The command triggered by pressing the button to add a new song
+        /// </summary>
         public RelayCommand? AddSongCommand { get; private set; }
 
+        /// <summary>
+        /// The command triggered by pressing the delete button under the RemainingQueue list
+        /// </summary>
         public RelayCommand? DeleteSongCommand { get; private set; }
 
+        /// <summary>
+        /// The command triggered by pressing the remove button under the NextUp song
+        /// </summary>
         public RelayCommand? RemoveNextCommand { get; private set; }
 
+        /// <summary>
+        /// The command triggered by pressing the Done button under the NowPlaying song
+        /// </summary>
         public RelayCommand? SongDoneCommand { get; private set; }
 
+        /// <summary>
+        /// The command triggered by pressing the Load button under the NowPlaying song
+        /// </summary>
         public RelayCommand? LoadCommand { get; private set; }
 
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        // (Fields are set in the UpdateElements() method)
+                               // (Fields are set in the UpdateElements() method)
         public MainWindowViewModel(IHost host)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#pragma warning restore CS8618
         {
-            BindingOperations.EnableCollectionSynchronization(RemainingQueue, _lock);
+            BindingOperations.EnableCollectionSynchronization(RemainingQueue, _lock); // Get the UI updates on the right thread
 
             songQueue = host.Services.GetRequiredService<SongQueue>();
             this.karayote = host.Services.GetRequiredService<KarayoteBot>();
             UpdateElements();
-            songQueue.TheQueue.CollectionChanged += UpdateElements;
-            RemainingQueue.CollectionChanged += UpdateKarayote;
+            songQueue.TheQueue.CollectionChanged += UpdateElements; // update UI when queue changes externally
+            RemainingQueue.CollectionChanged += UpdateKarayote;     // update queue when changed in the UI
 
+            // Add a song to the queue using the singer and song title from the right side of the UI
             AddSongCommand = new RelayCommand(execute: async () =>
             {
                 // register a user with karayote or retrieve an existing one
@@ -144,6 +186,7 @@ namespace Karayote.ViewModels
                 return !string.IsNullOrEmpty(SongTitle) && !string.IsNullOrEmpty(SingerName);
             });
 
+            // Delete the song selected in the queue listbox
             DeleteSongCommand = new RelayCommand(execute: async () =>
             {
                 await karayote.DeleteSong(SelectedQueueSong!);
@@ -155,6 +198,7 @@ namespace Karayote.ViewModels
                 return SelectedQueueSong is not null;
             });
 
+            // Remove the song that's next up (if that singer has a reserve song it will be slotted back in here)
             RemoveNextCommand = new RelayCommand(execute: async () =>
             {
                 await karayote.DeleteSong(songQueue.NextUp!);            
@@ -165,6 +209,8 @@ namespace Karayote.ViewModels
                 return !string.IsNullOrEmpty(NextUp);
             });
 
+            // Signal that the current song is done and ask if it was actually sung or not
+            // (songs that were not actually sung may be selected again by other people)
             SongDoneCommand = new RelayCommand(execute: async () =>
             {
                 if (!karayote.currentSession.IsStarted) // TODO: cause session updates to also update UI so button isn't enabled until start
@@ -182,6 +228,7 @@ namespace Karayote.ViewModels
                 return !string.IsNullOrEmpty(NowPlaying);
             });
 
+            // Load the NowPlaying song in Karafun or in a browser, depending on the type of song it is
             LoadCommand = new RelayCommand(execute: () =>
             {
                 if (!karayote.currentSession.IsStarted) // TODO: cause session updates to also update UI so button isn't enabled until start
@@ -226,6 +273,9 @@ namespace Karayote.ViewModels
             UpdateElements();
         }
 
+        /// <summary>
+        /// Update the data bound to UI elements
+        /// </summary>
         private void UpdateElements()
         {
             NowPlaying = songQueue.NowPlaying is null ? "" : songQueue.NowPlaying.UIString;
@@ -247,6 +297,11 @@ namespace Karayote.ViewModels
                 SelectedQueueSong = null;
         }
 
+        /// <summary>
+        /// Update the actual queue after a change in the UI listbox
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void UpdateKarayote(object? sender, NotifyCollectionChangedEventArgs e)
         {
             songQueue.TheQueue.CollectionChanged -= UpdateElements; // disable event for queue changing or there's a conflict

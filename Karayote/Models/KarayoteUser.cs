@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Windows.Navigation;
 
 namespace Karayote.Models
 {
@@ -28,8 +27,12 @@ namespace Karayote.Models
         /// </summary>
         internal int ReservedSongCount { get => reservedSongs.Count; }
 
+        /// <summary>
+        /// The <see cref="BotifexUser"/> associated with this user, if they are interacting with Karayote through a messenger bot
+        /// </summary>
         internal BotifexUser? BotUser { get; set; } = null;
-        private List<SelectedSong> reservedSongs { get; set; } = new List<SelectedSong>();
+
+        private List<SelectedSong> reservedSongs { get; set; } = new List<SelectedSong>(); // the songs the user is holding until their already queued song leaves the queue
         private readonly object _lock = new object(); // primitive thread safety but more flexibility needed than modern options allow
 
         internal static readonly int MAX_RESERVED_SONGS = 2;

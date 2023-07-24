@@ -16,7 +16,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Karayote
 {
     /// <summary>
-    /// Interaction logic for App.xaml
+    /// Application startup and shutdown
     /// </summary>
     public partial class App : Application
     {
@@ -48,7 +48,6 @@ namespace Karayote
                             .AddDbContext<KYContext>(options => options.UseSqlServer(ctx.Configuration.GetConnectionString("KYContext")))
                             .AddScoped(typeof(IRepository<>), typeof(Repository<>));
                 })
-                //.UseConsoleLifetime()
                 .Build();
         }
         
